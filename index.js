@@ -205,11 +205,15 @@ function handleConnection(connection) {
            device_info.getCurrentFilename() + device_info.getExtension();
            fileType = 1;
          }
-     
+         temp_file_buff = Buffer.alloc(0);
+         temp_file_buff = Buffer.concat([
+           temp_file_buff,
+           device_info.getFileBuffer(),
+         ]);
          var params ;
          if(device_info.getExtension() ==
          ".h265"){
-     console.log("DSVds")
+     
            params = {
              Bucket: "vtracksolutions/media", // pass your bucket name
              Key:

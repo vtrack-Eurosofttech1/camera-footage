@@ -208,20 +208,21 @@ Device.prototype.setUploadedToS3= function (value) {
     return this.uploaded_to_s3;
   }
 
-/*   let DUALCAM_ADAS_TRIGGER_SOURCE = {
-    0: "SERVER REQUEST",
-    1: "DIN1",
-    2: "DIN2",
-    3: "CRASH",
-    4: "TOWING",
-    5: "IDLING",
-    6: "GEOFENCE",
-    7: "UNPLUG",
-    8: "GREEN DRIVING",
-    9: "PERIODIC",
-    10: "DIN3",
-    11: "DIN4",
-}
+  let DUALCAM_ADAS_TRIGGER_SOURCE = {
+     0: "SERVER REQUEST",
+     1: "DIN1",
+     2: "DIN2",
+     3: "CRASH",
+     4: "TOWING",
+     5: "IDLING",
+     6: "GEOFENCE",
+     7: "UNPLUG",
+     8: "GREEN DRIVING",
+     9: "PERIODIC",
+     10: "DIN3",
+     11: "DIN4",
+ }
+/*  
 let ADAS_TRIGGER_SOURCE = {
     0: "SERVER REQUEST",
     1: "DIN1",
@@ -597,7 +598,7 @@ function SaveToFileJSON(jsonString, path) {
     }
     });
 };
-exports.convertvideo = function ConvertVideoFile(directory, filename, extension, metadata, metadata_option) {
+function ConvertVideoFile(directory, filename, extension, metadata, metadata_option) {
     framerate = "25";
     if (metadata_option == METADATA_TYPE.AT_START) {
         framerate = metadata.getFramerate();
@@ -706,7 +707,7 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
                // device_info.addToBuffer(raw_file);
                 let buffer = Buffer.from(device_info.getFileBuffer(), "base64");
                 const downloadFolderPath = path.join(__dirname, 'downloads');
-const filePath = path.join(downloadFolderPath, device_info.getDeviceDirectory(), device_info.getCurrentFilename() + device_info.getExtension());
+const filePath = path.join(__dirname, device_info.getDeviceDirectory(), device_info.getCurrentFilename() + device_info.getExtension());
 
 fs.writeFile(filePath, buffer, (err) => {
     if (err) {
@@ -1038,7 +1039,7 @@ fs.writeFile(filePath, buffer, (err) => {
 const filename = device_info.getCurrentFilename() + ".mp4"; // filename
 
 // Construct the path to the file
-const filePath = path.join(__dirname, 'downloads', IMEI, filename);
+const filePath = path.join(__dirname, IMEI, filename);
             const fileContent = fs.readFileSync(filePath);
   params.Body=fileContent
             console.log("uploading start", fileContent);
