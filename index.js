@@ -6,6 +6,7 @@ const protocol = require('./protocol.js');
 const cliProgress = require('cli-progress');
 const _colors = require('colors');
 const dbg = require('./debug.js')
+const path = require("path");
 process.setMaxListeners(12);
 dbg.logAndPrint("Camera Transfer Server (Copyright © 2022, \x1b[34mTeltonika\x1b[0m), version 0.2.12");
 const optionDefinitions = [
@@ -42,17 +43,8 @@ if (args.port > 0) {
 let camera_option = 0;
 if (typeof(args.cam) != "undefined") {
     if (args.cam >= 0 && args.cam < protocol.camera_type.LAST) {
-        if (args.cam == protocol.camera_type.AUTO) {
-            dbg.logAndPrint("Chosen auto camera type detection");
-        }
-        if (args.cam == protocol.camera_type.ADAS) {
-            dbg.logAndPrint("Chosen ADAS camera type");
-        }
         if (args.cam == protocol.camera_type.DUALCAM) {
             dbg.logAndPrint("Chosen DualCam camera type");
-        }
-        if (args.cam == protocol.camera_type.DSM) {
-            dbg.logAndPrint("Chosen DSM camera type");
         }
         camera_option = args.cam;
     } else {
@@ -189,12 +181,92 @@ function handleConnection(connection) {
         }
     }
     function onConnClose() {
-        dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
+       // dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
+       console.log("onConnClose")
+   
+       if (!device_info.getUploadedToS3() ) {
+         console.log("onConnError 4513")
+         const query = Buffer.from([0, 0, 0, 0]);
+         dbg.log('[TX]: [' + query.toString('hex') + ']');
+         connection.write(query);
+ 
+         device_info.setTotalPackages(0);
+         device_info.resetReceivedPackageCnt();
+         device_info.setLastCRC(0);
+         console.log("DSvsdf onConnError 2", device_info.getExtension())
+         var fileName;
+         var dateValue = new Date();
+         var fileType = 1;
+         if (device_info.getExtension() == ".h265") {
+           fileName = device_info.getCurrentFilename() + ".mp4";
+           fileType = 2;
+         } else {
+           fileName =
+           device_info.getCurrentFilename() + device_info.getExtension();
+           fileType = 1;
+         }
+     
+         var params ;
+         if(device_info.getExtension() ==
+         ".h265"){
+     console.log("DSVds")
+           params = {
+             Bucket: "vtracksolutions/media", // pass your bucket name
+             Key:
+             device_info.getDeviceDirectory() +
+                 "/" +
+                 dateValue.valueOf() +
+                 device_info.getCurrentFilename() +
+                 
+                  ".mp4",                      
+     
+             // Body: fileContent,
+             ContentType: "video/mp4",
+           };
+         }else{
+     
+           params = {
+             Bucket: "vtracksolutions/media", // pass your bucket name
+             Key:
+             device_info.getDeviceDirectory() +
+                 "/" +
+                 dateValue.valueOf() +
+                 device_info.getExtension(),
+     
+             Body: temp_file_buff,
+             
+           };
+         } 
+         if (deviceStatus.getExtension() == ".h265") {
+          
+            protocol.convertvideo(
+                device_info.getDeviceDirectory(),
+                device_info.getCurrentFilename(),
+                device_info.getExtension()
+           ).then((d)=>{
+             console.log(d,"======")
+             const IMEI = device_info.getDeviceDirectory(); // IMEI number
+             const filename = device_info.getCurrentFilename() + ".mp4"; // filename
+             
+             // Construct the path to the file
+             const filePath = path.join(__dirname, 'downloads', IMEI, filename);
+                         const fileContent = fs.readFileSync(filePath);
+     params.Body=fileContent
+             console.log("uploading start", fileContent);
+        uploadToS3(params,{fileType,fileName,deviceIMEI:device_info.getDeviceDirectory()})
+           
+           }).catch((e)=>{console.log(e)})
+         }else{
+        uploadToS3(params,{fileType,fileName,deviceIMEI:device_info.getDeviceDirectory()});       
+         }}
+   
     }
     function onConnError(err) {
         dbg.logAndPrint('Connection ' + remoteAddress + ' error: ' + err.message);
+        console.log("onConnError")
     }
     function onConnTimeout() {
         dbg.logAndPrint('Connection from ' + remoteAddress + ' timeouted');
+        console.log("onConnTimeout")
     }
 }

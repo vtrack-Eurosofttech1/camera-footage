@@ -5,17 +5,21 @@
   "main": "index.js",
   "bin": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-    
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon index.js -p 7056 -r 2 -m 1"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.1628.0",
     "cli-progress": "^3.12.0",
     "colors": "^1.4.0",
     "command-line-args": "^5.2.1",
     "crc-full": "^1.1.0",
+    "fs": "^0.0.1-security",
     "logform": "^2.5.1",
+    "mongodb": "^6.6.2",
+    "nodemon": "^3.1.1",
     "pkg": "^4.4.8",
     "winston": "^3.10.0"
   }
