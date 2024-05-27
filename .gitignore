@@ -1,0 +1,5 @@
+build/
+node_modules/
+downloads/
+error.log
+info.log

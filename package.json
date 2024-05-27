@@ -1,0 +1,22 @@
+{
+  "name": "cts",
+  "version": "1.0.0",
+  "description": "Server that supports file transfer protocol for video and photo file download.",
+  "main": "index.js",
+  "bin": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+    
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "cli-progress": "^3.12.0",
+    "colors": "^1.4.0",
+    "command-line-args": "^5.2.1",
+    "crc-full": "^1.1.0",
+    "logform": "^2.5.1",
+    "pkg": "^4.4.8",
+    "winston": "^3.10.0"
+  }
+}
