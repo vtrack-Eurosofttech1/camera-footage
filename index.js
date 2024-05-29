@@ -7,6 +7,8 @@ const cliProgress = require('cli-progress');
 const _colors = require('colors');
 const dbg = require('./debug.js')
 const path = require("path");
+const { uploadToS3 } = require('./uploadToS3.js');
+const { exec } = require("child_process");
 process.setMaxListeners(12);
 dbg.logAndPrint("Camera Transfer Server (Copyright © 2022, \x1b[34mTeltonika\x1b[0m), version 0.2.12");
 const optionDefinitions = [
@@ -90,7 +92,7 @@ server.listen(port, function () {
     dbg.logAndPrint('Listening to ' + server.address()["port"] + ' port');
 });
 //  Network handler
-const buffer_size = 69000;
+const buffer_size = 20000;
 function handleConnection(connection) {
     const progress_bar = new cliProgress.SingleBar({
         format: '[\x1b[34mSERVER\x1b[0m] Download Progress |' + _colors.blue('{bar}') + '| {percentage}% || {value}/{total} Chunks || ETA: {eta} seconds',
@@ -119,6 +121,32 @@ function handleConnection(connection) {
         }
         return data
     }
+    function getUnixTimestamp(dateString) {
+        return new Date(dateString).getTime();
+      }
+
+      function ConvertVideoFile(directory, filename, extension) {
+        return new Promise((resolve, reject) => {
+        
+          console.log("SD", `${directory}\\${filename}${extension}`);
+      
+          const form_command = `ffmpeg -r 25 -i "${directory}\\${filename}${extension}" -ss 00:00:0.9 -c:a copy -c:v libx264 -preset ultrafast  "${directory}\\${filename}.mp4"`;
+          exec(form_command, (error, stdout, stderr) => {
+            if (error) {
+              // console.log(`Error: ${error.message}`);
+              return   reject(`Error: ${error.message}`);
+            }
+            if (stderr) {
+              // console.log(`Stderr: ${stderr}`);
+            }
+            console.log(
+              `Conversion completed successfully. "${filename}${extension}"`
+            );
+            return resolve(`Stderr: ${stderr}`);
+      
+          });
+        });
+      }
     function onConnData(data) {
         // Check if there is a TCP buffer overflow
         if (data.length >= buffer_size) {
@@ -182,88 +210,147 @@ function handleConnection(connection) {
     }
     function onConnClose() {
        // dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
-       console.log("onConnClose")
-   
-       if (!device_info.getUploadedToS3() ) {
+       console.log("onConnClose", device_info.getUploadedToS3())
+       let timestamp = getUnixTimestamp(metadata.timestamp);
+       console.log("timestamp",timestamp)
+       const IMEI = device_info.getDeviceDirectory(); // IMEI number
+       const filename = `${timestamp}` + ".mp4"; // filename
+       
+       // Construct the path to the file
+       const filePath = path.join(__dirname, IMEI, filename);
+       if (device_info.getUploadedToS3() ==false && !isNaN(timestamp)  && !fs.existsSync(filePath) ){console.log("in")
+     /*   const IMEI = device_info.getDeviceDirectory(); // IMEI number
+       const filename = `${timestamp}` + ".mp4"; // filename
+       
+       // Construct the path to the file
+       const filePath = path.join(__dirname, 'downloads', IMEI, filename);
+                  
+       if (device_info.getUploadedToS3() ==false && !fs.existsSync(filePath) ) {
          console.log("onConnError 4513")
          const query = Buffer.from([0, 0, 0, 0]);
          dbg.log('[TX]: [' + query.toString('hex') + ']');
          connection.write(query);
  
-         device_info.setTotalPackages(0);
-         device_info.resetReceivedPackageCnt();
-         device_info.setLastCRC(0);
-         console.log("DSvsdf onConnError 2", device_info.getExtension())
+         console.log("DSvsdf onConnError 2", device_info.getExtension()) */
          var fileName;
-         var dateValue = new Date();
-         var fileType = 1;
-         if (device_info.getExtension() == ".h265") {
-           fileName = device_info.getCurrentFilename() + ".mp4";
-           fileType = 2;
-         } else {
-           fileName =
-           device_info.getCurrentFilename() + device_info.getExtension();
-           fileType = 1;
-         }
-         temp_file_buff = Buffer.alloc(0);
-         temp_file_buff = Buffer.concat([
-           temp_file_buff,
-           device_info.getFileBuffer(),
-         ]);
-         var params ;
-         if(device_info.getExtension() ==
-         ".h265"){
-     
-           params = {
-             Bucket: "vtracksolutions/media", // pass your bucket name
-             Key:
-             device_info.getDeviceDirectory() +
-                 "/" +
-                 dateValue.valueOf() +
-                 device_info.getCurrentFilename() +
-                 
-                  ".mp4",                      
-     
-             // Body: fileContent,
-             ContentType: "video/mp4",
-           };
-         }else{
-     
-           params = {
-             Bucket: "vtracksolutions/media", // pass your bucket name
-             Key:
-             device_info.getDeviceDirectory() +
-                 "/" +
-                 dateValue.valueOf() +
-                 device_info.getExtension(),
-     
-             Body: temp_file_buff,
-             
-           };
-         } 
-         if (deviceStatus.getExtension() == ".h265") {
-          
-            protocol.convertvideo(
-                device_info.getDeviceDirectory(),
-                device_info.getCurrentFilename(),
-                device_info.getExtension()
-           ).then((d)=>{
-             console.log(d,"======")
-             const IMEI = device_info.getDeviceDirectory(); // IMEI number
-             const filename = device_info.getCurrentFilename() + ".mp4"; // filename
-             
-             // Construct the path to the file
-             const filePath = path.join(__dirname, 'downloads', IMEI, filename);
-                         const fileContent = fs.readFileSync(filePath);
-     params.Body=fileContent
-             console.log("uploading start", fileContent);
-        uploadToS3(params,{fileType,fileName,deviceIMEI:device_info.getDeviceDirectory()})
+        var dateValue = new Date();
+        var fileType = 1;
+        if (device_info.getExtension() == ".h265") {
+          fileName =  `${timestamp}` + ".mp4";
+          fileType = 2;
+        } else {
+          fileName =
+          `${timestamp}` + device_info.getExtension();
+          fileType = 1;
+        }
+        let deviceInfo = device_info.getDeviceDirectory();
+        let directory = deviceInfo.split('/').pop();
+        let params ;
+        if(device_info.getExtension() ==
+        ".h265"){
+
+          params = {
+            Bucket: "vtracksolutions/media", // pass your bucket name
+            Key:
+            directory +
+                "/" +
+                `${timestamp}` +
+                
+                 ".mp4",                      
+
+            // Body: fileContent,
+            ContentType: "video/mp4",
+          };
+        }else{
+
+          params = {
+            Bucket: "vtracksolutions/media", // pass your bucket name
+            Key:
+            directory +
+                "/" +
+                `${timestamp}` +
+                device_info.getExtension(),
+
+           // Body: temp_file_buff,
+            ContentType: 'image/jpeg' 
+            
+          };
+        } 
+        if (device_info.getExtension() == ".h265") {
+
+            ConvertVideoFile(
+            device_info.getDeviceDirectory(),
+            `${timestamp}`,
+            device_info.getExtension()
+          ).then((d)=>{
            
-           }).catch((e)=>{console.log(e)})
-         }else{
-        uploadToS3(params,{fileType,fileName,deviceIMEI:device_info.getDeviceDirectory()});       
-         }}
-   
+            const IMEI = device_info.getDeviceDirectory(); // IMEI number
+const filename = `${timestamp}` + ".mp4"; // filename
+
+// Construct the path to the file
+var filePath = path.join(__dirname, IMEI, filename);
+            const fileContent = fs.readFileSync(filePath);
+  params.Body=fileContent
+        //    console.log("uploading start", fileContent);
+        let deviceInfo = device_info.getDeviceDirectory();
+        let directory = deviceInfo.split('/').pop();
+       
+      /*  uploadToS3(params,{fileType,fileName,deviceIMEI:directory})
+           device_info.setUploadedToS3(true);
+           fs.unlink(filePath, (err) => {
+            if (err) {
+                console.error("Error deleting file:", err);
+            } else {
+                console.log("File deleted successfully");
+            }
+        }); */
+        
+        uploadToS3(params,{fileType,fileName,deviceIMEI:directory})
+    .then((result) => {
+        device_info.setUploadedToS3(true);
+        fs.unlink(filePath, (err) => {
+         if (err) {
+             console.error("Error deleting file:", err);
+         } else {
+             console.log("File deleted successfully");
+         }
+     })
+    })
+    .catch((error) => {
+        console.error(error);
+    });
+       
+       
+            })
+
+            
+       
+        }else{
+            const IMEI = device_info.getDeviceDirectory(); // IMEI number
+            const filename = `${timestamp}` + device_info.getExtension(); // filename
+            
+            // Construct the path to the file
+            const filePath = path.join(__dirname, IMEI, filename);
+                        const fileContent = fs.readFileSync(filePath);
+              params.Body=fileContent
+            let deviceInfo = device_info.getDeviceDirectory();
+            let directory = deviceInfo.split('/').pop();
+            
+                   /*  uploadToS3(params,{fileType,fileName,deviceIMEI:directory});   
+       device_info.setUploadedToS3(true);  */  
+       uploadToS3(params,{fileType,fileName,deviceIMEI:directory})
+       .then((result) => {
+           device_info.setUploadedToS3(true);
+           fs.unlink(filePath, (err) => {
+            if (err) {
+                console.error("Error deleting file:", err);
+            } else {
+                console.log("File deleted successfully");
+            }
+        })
+       })  
+      
+        }}
     }
     function onConnError(err) {
         dbg.logAndPrint('Connection ' + remoteAddress + ' error: ' + err.message);
