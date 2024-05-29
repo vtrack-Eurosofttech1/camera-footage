@@ -100,8 +100,8 @@ io.on("connection",(socket)=>{
     console.log("Socket connections created by ",socket.id)
 
 })
-function emitdatatoSocket(payload){
-const {percentage,clientId} = payload
+exports.emitdatatoSocket=(payload)=>{
+const {clientId} = payload
 io.fetchSockets().then((sockets)=>{
     sockets.forEach((socket)=>{
        if( clientId==socket.handshake.query.clientId){
