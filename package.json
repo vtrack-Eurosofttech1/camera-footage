@@ -18,10 +18,10 @@
     "crc-full": "^1.1.0",
     "fs": "^0.0.1-security",
     "logform": "^2.5.1",
-    
     "mongodb": "^4.7.0",
     "nodemon": "^3.1.1",
-    "pkg": "^4.4.8",
+    "pkg": "^4.4.8",    
+    "socket.io": "^4.7.5",
     "winston": "^3.10.0"
   }
 }

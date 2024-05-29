@@ -120,6 +120,7 @@ function Device() {
     this.query_file = 0;
     this.file_buff = Buffer.alloc(0);
     this.camera = CAMERA_TYPE.AUTO;
+    this.clientId="";
     this.metadata_type = METADATA_TYPE.NO_METADATA;
     this.sync_offset_correction = 0;
     this.first_sync_received = false;
@@ -135,6 +136,12 @@ Device.prototype.setDeviceDirectory = function (directory) {
 }
 Device.prototype.getDeviceDirectory = function () {
     return this.deviceDirectory;
+}
+Device.prototype.setclientId = function (directory) {
+    this.clientId = directory;
+}
+Device.prototype.getclientId = function () {
+    return this.clientId;
 }
 Device.prototype.setCurrentFilename = function (filename) {
     this.filename = filename;
