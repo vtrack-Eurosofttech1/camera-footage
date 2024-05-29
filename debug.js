@@ -12,7 +12,7 @@ function LogString(string) {
             new winston.transports.File({ filename: 'info.log' }),
         ],
     });
-    console.log('info', string)
+  //  console.log('info', string)
     logger.log('info', string);
     logger.close();
 };
@@ -37,7 +37,7 @@ function LogAndPrintString(string) {
 exports.logAndPrint = LogAndPrintString;
 
 function PrintString(string) {
-    console.log('[\x1b[34mSERVER\x1b[0m] ' + string);
+  //  console.log('[\x1b[34mSERVER\x1b[0m] ' + string);
 };
 exports.print = PrintString;
 
@@ -55,7 +55,7 @@ function LogError(string) {
     });
     logger.log('error', string);
     logger.close();
-    console.log("[\x1b[31mERROR\x1b[0m] " + string);
+  //  console.log("[\x1b[31mERROR\x1b[0m] " + string);
 };
 exports.error = LogError;
 

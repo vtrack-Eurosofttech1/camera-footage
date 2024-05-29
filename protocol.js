@@ -257,35 +257,35 @@ let DUALCAM_ADAS_TRIGGER_SOURCE = {
 };
 
 // let ADAS_TRIGGER_SOURCE = {
-//     0: "SERVER REQUEST",
-//     1: "DIN1",
-//     2: "DIN2",
-//     3: "DIN3",
-//     4: "DIN4",
-//     5: "CRASH",
-//     6: "TOWING",
-//     7: "IDLING",
-//     8: "GEOFENCE",
-//     9: "UNPLUG",
-//     10: "GREEN DRIVING",
-// }
+//   0: "SERVER REQUEST",
+//   1: "DIN1",
+//   2: "DIN2",
+//   3: "DIN3",
+//   4: "DIN4",
+//   5: "CRASH",
+//   6: "TOWING",
+//   7: "IDLING",
+//   8: "GEOFENCE",
+//   9: "UNPLUG",
+//   10: "GREEN DRIVING"
+// };
 // let DSM_TRIGGER_SOURCE = {
-//     0: "NONE",
-//     1: "DIN1",
-//     2: "DIN2",
-//     3: "DIN3",
-//     4: "DIN4",
-//     5: "CRASH",
-//     6: "TOWING",
-//     7: "IDLING",
-//     8: "GEOFENCE",
-//     9: "UNPLUG",
-//     10: "GREEN DRIVING",
-//     11: "SERVER",
-//     12: "PERIODIC",
-//     13: "DSM EVENT",
-//     14: "FILE RETRANSMIT",
-// }
+//   0: "NONE",
+//   1: "DIN1",
+//   2: "DIN2",
+//   3: "DIN3",
+//   4: "DIN4",
+//   5: "CRASH",
+//   6: "TOWING",
+//   7: "IDLING",
+//   8: "GEOFENCE",
+//   9: "UNPLUG",
+//   10: "GREEN DRIVING",
+//   11: "SERVER",
+//   12: "PERIODIC",
+//   13: "DSM EVENT",
+//   14: "FILE RETRANSMIT"
+// };
 let DUALCAM_FILE_TYPE = {
   4: "FRONT PHOTO",
   8: "REAR PHOTO",
@@ -293,11 +293,11 @@ let DUALCAM_FILE_TYPE = {
   32: "REAR VIDEO"
 };
 // let ADAS_FILE_TYPE = {
-//     0:  "VIDEO",
-//     1:  "SNAPSHOT",
-//     2:  "CURRENT SNAPSHOT",
-//     3:  "RETRANSMITTED SNAPSHOT",
-// }
+//   0: "VIDEO",
+//   1: "SNAPSHOT",
+//   2: "CURRENT SNAPSHOT",
+//   3: "RETRANSMITTED SNAPSHOT"
+// };
 function MetaData() {
   this.command_version = ""; //1 byte
   this.file_type = ""; //1 byte
@@ -528,12 +528,20 @@ MetaData.prototype.setTriggerSource = function (trigger_source, camera) {
       trigger_source.readUInt8(0).toString(10) +
       ")";
   }
-  // if (camera == CAMERA_TYPE.ADAS) {
-  //     this.trigger_source = ADAS_TRIGGER_SOURCE[trigger_source.readUInt8(0)] + " (" + trigger_source.readUInt8(0).toString(10) + ")";
-  // }
-  // if (camera == CAMERA_TYPE.DSM) {
-  //     this.trigger_source = DSM_TRIGGER_SOURCE[trigger_source.readUInt8(0)] + " (" + trigger_source.readUInt8(0).toString(10) + ")";
-  // }
+  //   if (camera == CAMERA_TYPE.ADAS) {
+  //     this.trigger_source =
+  //       ADAS_TRIGGER_SOURCE[trigger_source.readUInt8(0)] +
+  //       " (" +
+  //       trigger_source.readUInt8(0).toString(10) +
+  //       ")";
+  //   }
+  //   if (camera == CAMERA_TYPE.DSM) {
+  //     this.trigger_source =
+  //       DSM_TRIGGER_SOURCE[trigger_source.readUInt8(0)] +
+  //       " (" +
+  //       trigger_source.readUInt8(0).toString(10) +
+  //       ")";
+  //   }
 };
 MetaData.prototype.getTriggerSource = function () {
   return this.trigger_source;
@@ -716,12 +724,12 @@ exports.run_fsm = async function (
           break;
         }
         // case CAMERA_TYPE.ADAS: {
-        //     device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-        //     break;
+        //   device_info.setTotalPackages(data_buffer.readUInt32BE(4));
+        //   break;
         // }
         // case CAMERA_TYPE.DSM: {
-        //     device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-        //     break;
+        //   device_info.setTotalPackages(data_buffer.readUInt32BE(4));
+        //   break;
         // }
       }
 
@@ -796,16 +804,22 @@ exports.run_fsm = async function (
             device_info.incrementReceivedPackageCnt(1);
             break;
           }
-          // case CAMERA_TYPE.ADAS: {
-          //     device_info.addToBuffer(raw_file, device_info.getReceivedPackageCnt());
+          //   case CAMERA_TYPE.ADAS: {
+          //     device_info.addToBuffer(
+          //       raw_file,
+          //       device_info.getReceivedPackageCnt()
+          //     );
           //     device_info.incrementReceivedPackageCnt(data_len);
           //     break;
-          // }
-          // case CAMERA_TYPE.DSM: {
-          //     device_info.addToBuffer(raw_file, device_info.getReceivedPackageCnt());
+          //   }
+          //   case CAMERA_TYPE.DSM: {
+          //     device_info.addToBuffer(
+          //       raw_file,
+          //       device_info.getReceivedPackageCnt()
+          //     );
           //     device_info.incrementReceivedPackageCnt(data_len);
           //     break;
-          // }
+          //   }
         }
         dbg.log(
           "Package: " +
