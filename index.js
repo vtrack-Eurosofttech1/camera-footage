@@ -9,6 +9,7 @@ const dbg = require('./debug.js')
 const path = require("path");
 const { uploadToS3 } = require('./uploadToS3.js');
 const { exec } = require("child_process");
+const { ConvertVideoFile } = require('./ConvertVideoFile.js');
 process.setMaxListeners(12);
 dbg.logAndPrint("Camera Transfer Server (Copyright © 2022, \x1b[34mTeltonika\x1b[0m), version 0.2.12");
 const optionDefinitions = [
@@ -125,28 +126,7 @@ function handleConnection(connection) {
         return new Date(dateString).getTime();
       }
 
-      function ConvertVideoFile(directory, filename, extension) {
-        return new Promise((resolve, reject) => {
-        
-          console.log("SD", `${directory}\\${filename}${extension}`);
-      
-          const form_command = `ffmpeg -r 25 -i "${directory}\\${filename}${extension}" -ss 00:00:0.9 -c:a copy -c:v libx264 -preset ultrafast  "${directory}\\${filename}.mp4"`;
-          exec(form_command, (error, stdout, stderr) => {
-            if (error) {
-              // console.log(`Error: ${error.message}`);
-              return   reject(`Error: ${error.message}`);
-            }
-            if (stderr) {
-              // console.log(`Stderr: ${stderr}`);
-            }
-            console.log(
-              `Conversion completed successfully. "${filename}${extension}"`
-            );
-            return resolve(`Stderr: ${stderr}`);
-      
-          });
-        });
-      }
+    
     function onConnData(data) {
         // Check if there is a TCP buffer overflow
         if (data.length >= buffer_size) {
@@ -246,6 +226,8 @@ function handleConnection(connection) {
         let deviceInfo = device_info.getDeviceDirectory();
         let directory = deviceInfo.split('/').pop();
         let params ;
+        let temp_file_buff = Buffer.alloc(0);
+        temp_file_buff = Buffer.concat([temp_file_buff, device_info.getFileBuffer()]);
         if(device_info.getExtension() ==
         ".h265"){
 

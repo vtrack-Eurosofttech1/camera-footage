@@ -3,6 +3,7 @@ const { exec } = require("child_process");
 const dbg = require('./debug.js');
 const { uploadToS3 } =require('./uploadToS3.js')
 const path = require("path");
+const { ConvertVideoFile } = require('./ConvertVideoFile.js');
 /* Constants */
 const FSM_STATE = {
     WAIT_FOR_CMD: 0,
@@ -223,48 +224,48 @@ Device.prototype.setUploadedToS3= function (value) {
      11: "DIN4",
  }
  
-let ADAS_TRIGGER_SOURCE = {
-    0: "SERVER REQUEST",
-    1: "DIN1",
-    2: "DIN2",
-    3: "DIN3",
-    4: "DIN4",
-    5: "CRASH",
-    6: "TOWING",
-    7: "IDLING",
-    8: "GEOFENCE",
-    9: "UNPLUG",
-    10: "GREEN DRIVING",
-}
-let DSM_TRIGGER_SOURCE = {
-    0: "NONE",
-    1: "DIN1",
-    2: "DIN2",
-    3: "DIN3",
-    4: "DIN4",
-    5: "CRASH",
-    6: "TOWING",
-    7: "IDLING",
-    8: "GEOFENCE",
-    9: "UNPLUG",
-    10: "GREEN DRIVING",
-    11: "SERVER",
-    12: "PERIODIC",
-    13: "DSM EVENT",
-    14: "FILE RETRANSMIT",
-}
+// let ADAS_TRIGGER_SOURCE = {
+//     0: "SERVER REQUEST",
+//     1: "DIN1",
+//     2: "DIN2",
+//     3: "DIN3",
+//     4: "DIN4",
+//     5: "CRASH",
+//     6: "TOWING",
+//     7: "IDLING",
+//     8: "GEOFENCE",
+//     9: "UNPLUG",
+//     10: "GREEN DRIVING",
+// }
+// let DSM_TRIGGER_SOURCE = {
+//     0: "NONE",
+//     1: "DIN1",
+//     2: "DIN2",
+//     3: "DIN3",
+//     4: "DIN4",
+//     5: "CRASH",
+//     6: "TOWING",
+//     7: "IDLING",
+//     8: "GEOFENCE",
+//     9: "UNPLUG",
+//     10: "GREEN DRIVING",
+//     11: "SERVER",
+//     12: "PERIODIC",
+//     13: "DSM EVENT",
+//     14: "FILE RETRANSMIT",
+// }
 let DUALCAM_FILE_TYPE = {
     4:  "FRONT PHOTO",
     8:  "REAR PHOTO",
     16: "FRONT VIDEO",
     32: "REAR VIDEO",
 }
-let ADAS_FILE_TYPE = {
-    0:  "VIDEO",
-    1:  "SNAPSHOT",
-    2:  "CURRENT SNAPSHOT",
-    3:  "RETRANSMITTED SNAPSHOT",
-}
+// let ADAS_FILE_TYPE = {
+//     0:  "VIDEO",
+//     1:  "SNAPSHOT",
+//     2:  "CURRENT SNAPSHOT",
+//     3:  "RETRANSMITTED SNAPSHOT",
+// }
 function MetaData() {
     this.command_version = "";   //1 byte
     this.file_type = "";         //1 byte
@@ -445,12 +446,12 @@ MetaData.prototype.setTriggerSource = function (trigger_source, camera) {
     if (camera == CAMERA_TYPE.DUALCAM) {
         this.trigger_source = DUALCAM_ADAS_TRIGGER_SOURCE[trigger_source.readUInt8(0)] + " (" + trigger_source.readUInt8(0).toString(10) + ")";
     }
-    if (camera == CAMERA_TYPE.ADAS) {
-        this.trigger_source = ADAS_TRIGGER_SOURCE[trigger_source.readUInt8(0)] + " (" + trigger_source.readUInt8(0).toString(10) + ")";
-    }
-    if (camera == CAMERA_TYPE.DSM) {
-        this.trigger_source = DSM_TRIGGER_SOURCE[trigger_source.readUInt8(0)] + " (" + trigger_source.readUInt8(0).toString(10) + ")";
-    }
+    // if (camera == CAMERA_TYPE.ADAS) {
+    //     this.trigger_source = ADAS_TRIGGER_SOURCE[trigger_source.readUInt8(0)] + " (" + trigger_source.readUInt8(0).toString(10) + ")";
+    // }
+    // if (camera == CAMERA_TYPE.DSM) {
+    //     this.trigger_source = DSM_TRIGGER_SOURCE[trigger_source.readUInt8(0)] + " (" + trigger_source.readUInt8(0).toString(10) + ")";
+    // }
 }
 MetaData.prototype.getTriggerSource = function () {
     return this.trigger_source;
@@ -598,34 +599,7 @@ function SaveToFileJSON(jsonString, path) {
     }
     });
 };
-function ConvertVideoFile(directory, filename, extension) {
-    return new Promise((resolve, reject) => {
-      // fs.unlink(`./${directory}/${filename}.mp4`, (err) => {});
-     // console.log("SD", `${directory}\\${filename}${extension}`);
-      // fs.unlink(`./${directory}/${filename}.h265`, (err) => {
-      //   if (err) {
-      //     console.error(`Error deleting original file: ${err.message}`);
-      //   } else {
-      //     console.log(`Original file deleted: ${`./${directory}/${filename}.h265`}`);
-      //   }}
-      // )
-      const form_command = `ffmpeg -r 25 -i "${directory}\\${filename}${extension}" -ss 00:00:0.9 -c:a copy -c:v libx264 -preset ultrafast  "${directory}\\${filename}.mp4"`;
-      exec(form_command, (error, stdout, stderr) => {
-        if (error) {
-          // console.log(`Error: ${error.message}`);
-          return   reject(`Error: ${error.message}`);
-        }
-        if (stderr) {
-          // console.log(`Stderr: ${stderr}`);
-        }
-        console.log(
-          `Conversion completed successfully. "${filename}${extension}"`
-        );
-        return resolve(`Stderr: ${stderr}`);
-  
-      });
-    });
-  }
+
 
   function getUnixTimestamp(dateString) {
     return new Date(dateString).getTime();
@@ -644,14 +618,14 @@ exports.run_fsm =async  function (current_state, connection, cmd_id, data_buffer
                     device_info.setTotalPackages(data_buffer.readUInt32BE(4));
                     break;
                 }
-                case CAMERA_TYPE.ADAS: {
-                    device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-                    break;
-                }
-                case CAMERA_TYPE.DSM: {
-                    device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-                    break;
-                }
+                // case CAMERA_TYPE.ADAS: {
+                //     device_info.setTotalPackages(data_buffer.readUInt32BE(4));
+                //     break;
+                // }
+                // case CAMERA_TYPE.DSM: {
+                //     device_info.setTotalPackages(data_buffer.readUInt32BE(4));
+                //     break;
+                // }
             }
           
             
@@ -719,16 +693,16 @@ exports.run_fsm =async  function (current_state, connection, cmd_id, data_buffer
                         device_info.incrementReceivedPackageCnt(1);
                         break;
                     }
-                    case CAMERA_TYPE.ADAS: {
-                        device_info.addToBuffer(raw_file, device_info.getReceivedPackageCnt());
-                        device_info.incrementReceivedPackageCnt(data_len);
-                        break;
-                    }
-                    case CAMERA_TYPE.DSM: {
-                        device_info.addToBuffer(raw_file, device_info.getReceivedPackageCnt());
-                        device_info.incrementReceivedPackageCnt(data_len);
-                        break;
-                    }
+                    // case CAMERA_TYPE.ADAS: {
+                    //     device_info.addToBuffer(raw_file, device_info.getReceivedPackageCnt());
+                    //     device_info.incrementReceivedPackageCnt(data_len);
+                    //     break;
+                    // }
+                    // case CAMERA_TYPE.DSM: {
+                    //     device_info.addToBuffer(raw_file, device_info.getReceivedPackageCnt());
+                    //     device_info.incrementReceivedPackageCnt(data_len);
+                    //     break;
+                    // }
                 }
                 dbg.log("Package: " + device_info.getReceivedPackageCnt() + " / " + (device_info.getTotalPackages() - (1 - device_info.sync_offset_correction)));
                // device_info.addToBuffer(raw_file);
@@ -737,7 +711,7 @@ exports.run_fsm =async  function (current_state, connection, cmd_id, data_buffer
                 // Save for calculating next packet's CRC
                 device_info.setLastCRC(actual_crc);
                 let buffer = Buffer.from(device_info.getFileBuffer(), "base64");
-                const downloadFolderPath = path.join(__dirname, 'downloads');
+                
 const filePath = path.join(__dirname, device_info.getDeviceDirectory(), /* device_info.getCurrentFilename() */ `${timestamp}` + device_info.getExtension());
 
 fs.writeFile(filePath, buffer, (err) => {
