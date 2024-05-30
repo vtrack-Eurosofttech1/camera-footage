@@ -8,12 +8,9 @@ const _colors = require("colors");
 const dbg = require("./debug.js");
 const path = require("path");
 const { uploadToS3 } = require("./uploadToS3.js");
-const { Server } = require("socket.io");
 const { exec } = require("child_process");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 process.setMaxListeners(12);
-const io = new Server({ cors: { origin: "*" } });
-var deviceConnections = [];
 dbg.logAndPrint(
   "Camera Transfer Server (Copyright © 2022, \x1b[34mTeltonika\x1b[0m), version 0.2.12"
 );
@@ -104,20 +101,6 @@ if (
 server.listen(port, function () {
   dbg.logAndPrint("Listening to " + server.address()["port"] + " port");
 });
-io.listen(server);
-io.on("connection", (socket) => {
-  console.log("Socket connections created by ", socket.id);
-});
-exports.emitdatatoSocket = (payload) => {
-  const { clientId } = payload;
-  io.fetchSockets().then((sockets) => {
-    sockets.forEach((socket) => {
-      if (clientId == socket.handshake.query.clientId) {
-        socket.emit("message", payload);
-      }
-    });
-  });
-};
 //  Network handler
 const buffer_size = 20000;
 function handleConnection(connection) {
@@ -168,6 +151,10 @@ function handleConnection(connection) {
   function getUnixTimestamp(dateString) {
     return new Date(dateString).getTime();
   }
+// Define the path for the text file
+// const IMEI = device_info.getDeviceDirectory(); // IMEI number
+
+const filePath1 = path.join(__dirname, 'data.bin');
 
   function onConnData(data) {
     // Check if there is a TCP buffer overflow
@@ -178,6 +165,20 @@ function handleConnection(connection) {
       dbg.error("Too much data: " + data.length + " >= " + buffer_size);
       return;
     }
+
+    
+    // const datas = data.toString('utf8');
+    // Write the data to the text file
+    fs.appendFile(filePath1, data + '\n', (err) => {
+        if (err) {
+            console.error("Error writing to file:", err);
+        } else {
+            console.log("Data written to file successfully.");
+        }
+    });
+
+
+
     if (current_state == protocol.fsm_state.REPEAT_PACKET) {
       // try string search the sync cmd and drop unsynced packet data
       data = lookForSyncPacket(data);

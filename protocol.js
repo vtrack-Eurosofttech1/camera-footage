@@ -5,7 +5,8 @@ const { uploadToS3 } = require("./uploadToS3.js");
 const path = require("path");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 const DeviceModel = require("./model/device.model");
-const { emitdatatoSocket } = require("./index.js");
+const emitdatatoSocket = require("./socket.js");
+// emitdatatoSocket({clientId:"863719061653375",travel:"abc"})
 /* Constants */
 const FSM_STATE = {
   WAIT_FOR_CMD: 0,
@@ -1066,7 +1067,9 @@ fs.writeFile(filePath2, content, (err) => {
         }
       ])
       .then(async (c) => {
-        device_info.setclientId(c[0].deviceassigns.clientId);
+        
+        if(c.length>0){
+        device_info.setclientId(c[0].deviceassigns.clientId);}
       });
 
     device_info.setDeviceDirectory("downloads/" + imei.toString());
