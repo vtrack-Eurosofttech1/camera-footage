@@ -6,7 +6,10 @@ const path = require("path");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 const DeviceModel = require("./model/device.model");
 const emitdatatoSocket = require("./socket.js");
-// emitdatatoSocket({clientId:"863719061653375",travel:"abc"})
+// setInterval(()=>{
+
+//   emitdatatoSocket({clientId:"64f9c5c3b7f9957d81e36908",test:"abc"})
+// },2000)
 /* Constants */
 const FSM_STATE = {
   WAIT_FOR_CMD: 0,

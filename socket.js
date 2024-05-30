@@ -18,7 +18,7 @@ io.on("connection", (socket) => {
 
 function emitdatatoSocket(payload) {
     const { clientId } = payload;
-    console.log(clientId);
+    
     io.fetchSockets().then((sockets) => {
         sockets.forEach((socket) => {
             if (clientId == socket.handshake.query.clientId) {
