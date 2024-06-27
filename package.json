@@ -20,7 +20,7 @@
     "logform": "^2.5.1",
     "mongodb": "^4.7.0",
     "mongoose": "^8.4.0",
-    "nodemon": "^3.1.1",
+    "nodemon": "^3.1.4",
     "pkg": "^4.4.8",
     "socket.io": "^4.7.5",
     "winston": "^3.10.0",

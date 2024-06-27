@@ -1,11 +1,13 @@
 const { exec } = require("child_process");
 
-exports.ConvertVideoFile=(directory, filename, extension)=>{
+exports.ConvertVideoFile=(directory, frameratevideo, filename, extension)=>{
     return new Promise((resolve, reject) => {
     
-      console.log("SD", `${directory}\\${filename}${extension}`);
+      console.log("SD", `${directory}/${filename}${extension}`);
   
-      const form_command = `ffmpeg -r 25 -i "${directory}\\${filename}${extension}" -ss 00:00:0.9 -c:a copy -c:v libx264 -preset ultrafast  "${directory}\\${filename}.mp4"`;
+     const form_command = `ffmpeg -hide_banner -loglevel quiet -r ${frameratevideo} -i "${directory}//${filename}${extension}" -ss 00:00:0.9 -c:a copy -c:v libx264 -preset ultrafast  "${directory}/${filename}.mp4"`;
+     // let form_command = `ffmpeg -hide_banner -loglevel quiet -r " ${frameratevideo} " -i \"" "${directory}//${filename}${extension}" -ss 00:00:0.9 -c:a copy -c:v libx264 \"" "${directory}/${filename}.mp4"`;
+   
       exec(form_command, (error, stdout, stderr) => {
         if (error) {
           // console.log(`Error: ${error.message}`);

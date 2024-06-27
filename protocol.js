@@ -223,25 +223,27 @@ Device.prototype.getUploadedToS3 = function () {
 };
 Device.prototype.getDeviceInfoData = function () {
   return {
-    fsm_state: this.fsm_state,
+    progress :(this.received_packages/this.total_packages)*100,
+    filetype: this.extension_to_use,
+    // fsm_state: this.fsm_state,,
     deviceDirectory: this.deviceDirectory,
     filename: this.filename,
-    actual_crc: this.actual_crc,
+    // actual_crc: this.actual_crc,
     received_packages: this.received_packages,
     total_packages: this.total_packages,
-    extension_to_use: this.extension_to_use,
-    query_file: this.query_file,
-    file_buff: this.file_buff,
+   // extension_to_use: this.extension_to_use,
+    // query_file: this.query_file,
+    // file_buff: this.file_buff,
     camera: this.camera,
     clientId: this.clientId,
     metadata_type: this.metadata_type,
-    sync_offset_correction: this.sync_offset_correction,
-    first_sync_received: this.first_sync_received,
-    sync_received: this.sync_received,
-    repeat_sent_ts: this.repeat_sent_ts,
-    repeat_count: this.repeat_count,
-    protocol_version: this.protocol_version,
-    uploaded_to_s3: this.uploaded_to_s3
+    // sync_offset_correction: this.sync_offset_correction,
+    // first_sync_received: this.first_sync_received,
+    // sync_received: this.sync_received,
+    // repeat_sent_ts: this.repeat_sent_ts,
+    // repeat_count: this.repeat_count,
+    // protocol_version: this.protocol_version,
+    // uploaded_to_s3: this.uploaded_to_s3
   };
 };
 
@@ -719,7 +721,9 @@ exports.run_fsm = async function (
   let file_available = false;
   // console.log("meta data", getUnixTimestamp(metadata.timestamp))
   var timestamp = getUnixTimestamp(metadata.timestamp);
-
+  console.log("timestamo", timestamp)
+  var frameratevideo = metadata.framerate
+  console.log("metadata",frameratevideo)
   switch (cmd_id) {
     case CMD_ID.START: {
       switch (device_info.getCameraType()) {
@@ -1042,7 +1046,8 @@ fs.writeFile(filePath2, content, (err) => {
       fs.mkdirSync("downloads");
     }
     // dbg.log("[RX INIT]: [" + data_buffer.toString('hex') + "]");
-    let imei = data_buffer.readBigUInt64BE(4);
+    let imei = data_buffer.readBigUInt64BE(4).toString();
+
     DeviceModel.model
       .aggregate([
         { $match: { deviceIMEI: imei } },
@@ -1201,7 +1206,7 @@ fs.writeFile(filePath2, content, (err) => {
             }   
         } */
 
-    if (metadata_option == METADATA_TYPE.AT_START) {
+   /*  if (metadata_option == METADATA_TYPE.AT_START) {
       fs.appendFile(
         "./" +
           device_info.getDeviceDirectory() +
@@ -1220,7 +1225,7 @@ fs.writeFile(filePath2, content, (err) => {
               " successfully"
           );
         }
-      );
+      ); 
 
       if (device_info.getProtocolVersion() >= 6) {
         SaveToFileJSON(
@@ -1233,7 +1238,7 @@ fs.writeFile(filePath2, content, (err) => {
         );
       }
     }
-
+*/
     device_info.resetReceivedPackageCnt();
     device_info.clearBuffer();
 
@@ -1342,9 +1347,15 @@ fs.writeFile(filePath2, content, (err) => {
       };
     }
     if (device_info.getExtension() == ".h265") {
+      console.log("data", device_info.getDeviceDirectory(),
+        frameratevideo,
+        `${timestamp}`,
+        device_info.getExtension())
       ConvertVideoFile(
         device_info.getDeviceDirectory(),
+        frameratevideo,
         `${timestamp}`,
+     
         device_info.getExtension()
       ).then(async (d) => {
         const IMEI = device_info.getDeviceDirectory(); // IMEI number
@@ -1365,6 +1376,8 @@ fs.writeFile(filePath2, content, (err) => {
           filePath
         });
         device_info.setUploadedToS3(true);
+      }).catch(error => {
+        console.error("Error converting or uploading:", error);
       });
     } else {
       let deviceInfo = device_info.getDeviceDirectory();

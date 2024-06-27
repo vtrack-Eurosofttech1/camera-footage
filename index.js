@@ -251,7 +251,7 @@ const filePath1 = path.join(__dirname, 'data.bin');
     console.log("timestamp", timestamp);
     const IMEI = device_info.getDeviceDirectory(); // IMEI number
     const filename = `${timestamp}` + ".mp4"; // filename
-
+    var frameratevideo = metadata.framerate
     // Construct the path to the file
     const filePath = path.join(__dirname, IMEI, filename);
     if (
@@ -309,8 +309,10 @@ const filePath1 = path.join(__dirname, 'data.bin');
         };
       }
       if (device_info.getExtension() == ".h265") {
+        
         ConvertVideoFile(
           device_info.getDeviceDirectory(),
+          frameratevideo,
           `${timestamp}`,
           device_info.getExtension()
         ).then((d) => {

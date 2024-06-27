@@ -10,18 +10,22 @@ httpServer.listen(WEB_SERVER_PORT, () => {
 });
 
 io.on("connection", (socket) => {
-    console.log("A client connected:", socket.id);
-    socket._onclose((e)=>{
-        console.log(".....",e)
-    })
+    console.log("A client connected:", socket.id,socket.handshake.query);
+    // socket._onclose((e)=>{
+    //     console.log(".....",e)
+    // })
 });
 
 function emitdatatoSocket(payload) {
     const { clientId } = payload;
-    
+ //  console.log("afcbsdjfcd", payload)
     io.fetchSockets().then((sockets) => {
+       // console.log(sockets)
+        
         sockets.forEach((socket) => {
             if (clientId == socket.handshake.query.clientId) {
+               // console.log("====", payload)
+            //    let progress = (payload.received_packages/payload.total_packages)*100
                 socket.emit("message", payload);
             }
         });
