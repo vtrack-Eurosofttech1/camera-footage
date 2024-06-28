@@ -148,6 +148,12 @@ Device.prototype.setclientId = function (directory) {
 };
 Device.prototype.getclientId = function () {
   return this.clientId;
+}; 
+Device.prototype.setvehicle = function (directory) {
+  this.vehicle = directory;
+};
+Device.prototype.getvehicle = function () {
+  return this.vehicle;
 };
 Device.prototype.setCurrentFilename = function (filename) {
   this.filename = filename;
@@ -210,6 +216,12 @@ Device.prototype.getCameraType = function () {
 Device.prototype.setProtocolVersion = function (protocol_version) {
   this.protocol_version = protocol_version;
 };
+Device.prototype.setnewtimestamp = function (data) {
+  this.newtimestamp = data
+};
+Device.prototype.newtimestamp = function () {
+  return this.newtimestamp;
+};
 Device.prototype.getProtocolVersion = function () {
   return this.protocol_version;
 };
@@ -226,11 +238,14 @@ Device.prototype.getDeviceInfoData = function () {
     progress :(this.received_packages/this.total_packages)*100,
     filetype: this.extension_to_use,
     // fsm_state: this.fsm_state,,
+    camera_type: this.query_file,
+    timestamp:this.newtimestamp ,
     deviceDirectory: this.deviceDirectory,
     filename: this.filename,
     // actual_crc: this.actual_crc,
     received_packages: this.received_packages,
     total_packages: this.total_packages,
+    vehicle:this.vehicle,
    // extension_to_use: this.extension_to_use,
     // query_file: this.query_file,
     // file_buff: this.file_buff,
@@ -572,6 +587,8 @@ MetaData.prototype.setTimezone = function (timezone) {
 MetaData.prototype.getTimezone = function () {
   return this.timezone;
 };
+
+
 MetaData.prototype.setLatitude = function (latitude, camera) {
   if (camera == CAMERA_TYPE.DUALCAM) {
     this.latitude = latitude.readDoubleBE(0).toString(10);
@@ -720,10 +737,15 @@ exports.run_fsm = async function (
 ) {
   let file_available = false;
   // console.log("meta data", getUnixTimestamp(metadata.timestamp))
-  var timestamp = getUnixTimestamp(metadata.timestamp);
-  console.log("timestamo", timestamp)
+ // var timestamp = getUnixTimestamp(metadata.timestamp);
+ const startIndex = metadata.timestamp.indexOf('(') + 1;
+const endIndex = metadata.timestamp.indexOf(')');
+const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
+
+device_info.setnewtimestamp(timestamp)
+console.log("timestamo", timestamp)
   var frameratevideo = metadata.framerate
-  console.log("metadata",frameratevideo)
+
   switch (cmd_id) {
     case CMD_ID.START: {
       switch (device_info.getCameraType()) {
@@ -1046,7 +1068,7 @@ fs.writeFile(filePath2, content, (err) => {
       fs.mkdirSync("downloads");
     }
     // dbg.log("[RX INIT]: [" + data_buffer.toString('hex') + "]");
-    let imei = data_buffer.readBigUInt64BE(4).toString();
+    /* let imei = data_buffer.readBigUInt64BE(4).toString();
 
     DeviceModel.model
       .aggregate([
@@ -1078,7 +1100,60 @@ fs.writeFile(filePath2, content, (err) => {
         
         if(c.length>0){
         device_info.setclientId(c[0].deviceassigns.clientId);}
-      });
+      }); */
+      let imei = data_buffer.readBigUInt64BE(4).toString();
+      DeviceModel.model
+      .aggregate([
+        { $match: { deviceIMEI: imei } },
+        {
+          $lookup: {
+            from: "deviceassigns",
+            let: { device: "$_id" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: { $eq: ["$DeviceId", { $toString: "$$device" }] }
+                }
+              }
+            ],
+            as: "deviceassigns"
+          }
+        },
+        {
+          $unwind: "$deviceassigns"
+        }, 
+        {
+            $lookup: {
+              from: "vehicles",
+              let: { vehicle: "$deviceassigns.VehicleId" },
+              pipeline: [
+                {
+                  $match: {
+                    $expr: { $eq: [{$toString:"$_id"}, { $toString: "$$vehicle" }] }
+                  }
+                }
+              ],
+              as: "vehicles"
+            }
+          },
+          {
+            $unwind: "$vehicles"
+          },
+        {
+          $project: {
+            deviceassigns: 1,
+            vehicles: 1
+          }
+        }
+      ])
+      .then(async (c) => {
+        
+        if(c.length>0){
+         
+        device_info.setclientId(c[0].deviceassigns.clientId)
+        device_info.setvehicle(c[0].vehicles.vehicleReg)
+    }
+      }); 
 
     device_info.setDeviceDirectory("downloads/" + imei.toString());
     if (!fs.existsSync(device_info.getDeviceDirectory())) {
@@ -1368,12 +1443,15 @@ fs.writeFile(filePath2, content, (err) => {
         //    console.log("uploading start", fileContent);
         let deviceInfo = device_info.getDeviceDirectory();
         let directory = deviceInfo.split("/").pop();
-
+        let cameraType =  device_info.getFileToDL()
+     
+console.log("asdfcsd", cameraType)
         uploadToS3(params, {
           fileType,
           fileName,
           deviceIMEI: directory,
-          filePath
+          filePath,
+          cameraType,
         });
         device_info.setUploadedToS3(true);
       }).catch(error => {
@@ -1382,8 +1460,8 @@ fs.writeFile(filePath2, content, (err) => {
     } else {
       let deviceInfo = device_info.getDeviceDirectory();
       let directory = deviceInfo.split("/").pop();
-
-      uploadToS3(params, { fileType, fileName, deviceIMEI: directory });
+      let cameraType =  device_info.getFileToDL()
+      uploadToS3(params, { fileType, fileName, deviceIMEI: directory,cameraType });
       device_info.setUploadedToS3(true);
     }
 

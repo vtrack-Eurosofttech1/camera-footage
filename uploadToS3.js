@@ -155,7 +155,7 @@ const url =
 
 exports.uploadToS3 =(params,payload)=>{
   return new Promise((resolve, reject) => {
-    let {fileName,fileType,deviceIMEI}=payload
+    let {fileName,fileType,deviceIMEI,cameraType}=payload
    
     try{
         s3.upload(params, function (s3Err, fileContent) {
@@ -219,6 +219,7 @@ exports.uploadToS3 =(params,payload)=>{
                                       fetchedVehicle.vehicleReg;
                                     videoListObject["path"] = uploadedPath;
                                     videoListObject["isSeen"] = false;
+                                    videoListObject["cameraType"] =  cameraType
 
                                     dbo
                                       .collection("videolists")
@@ -231,7 +232,8 @@ exports.uploadToS3 =(params,payload)=>{
                                                 fileName: fileName,
                                                 Vehicle: videoListObject.Vehicle, // Assuming deviceIMEI is the vehicle attribute value
                                                 path: uploadedPath,
-                                                isSeen: false
+                                                isSeen: false,
+                                                cameraType:cameraType
                                             }
                                         },
                                         { upsert: true },
