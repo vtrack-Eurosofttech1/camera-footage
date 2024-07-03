@@ -159,7 +159,7 @@ const filePath1 = path.join(__dirname, 'data.bin');
   function onConnData(data) {
     // Check if there is a TCP buffer overflow
 
-    console.log("ok we have that data", data);
+    console.log("ok we have that data", data.length);
 
     if (data.length >= buffer_size) {
       dbg.error("Too much data: " + data.length + " >= " + buffer_size);

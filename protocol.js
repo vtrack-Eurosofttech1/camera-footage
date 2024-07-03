@@ -242,6 +242,7 @@ Device.prototype.getDeviceInfoData = function () {
     timestamp:this.newtimestamp ,
     deviceDirectory: this.deviceDirectory,
     filename: this.filename,
+    path:`https://vtracksolutions.s3.eu-west-2.amazonaws.com/media/${this.deviceDirectory.split("/")[1]}${this.timestamp}${this.extension_to_use}`,    
     // actual_crc: this.actual_crc,
     received_packages: this.received_packages,
     total_packages: this.total_packages,
@@ -801,6 +802,7 @@ console.log("timestamo", timestamp)
     }
 
     case CMD_ID.DATA: {
+      console.log("=====")
       if (device_info.sync_received == false) {
         current_state = FSM_STATE.WAIT_FOR_CMD;
         break;

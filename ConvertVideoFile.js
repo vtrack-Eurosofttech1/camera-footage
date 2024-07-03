@@ -23,4 +23,29 @@ exports.ConvertVideoFile=(directory, frameratevideo, filename, extension)=>{
   
       });
     });
-  }
+  } 
+/*
+//wine installed    
+ exports.ConvertVideoFile = (directory, frameratevideo, filename, extension) => {
+      return new Promise((resolve, reject) => {
+        // Assuming videoconverter.exe takes input and output file paths as arguments
+        const inputFilePath = `${directory}/${filename}${extension}`;
+        const outputFilePath = `${directory}/${filename}.mp4`;
+    
+        // Command to execute videoconverter.exe
+        const command = `wine ./VideoConverter.exe "${inputFilePath}" "${outputFilePath}"`;
+    
+        exec(command, (error, stdout, stderr) => {
+          if (error) {
+            console.error(`Error executing videoconverter.exe: ${error}`);
+            return reject(error);
+          }
+          if (stderr) {
+            console.error(`Stderr from videoconverter.exe: ${stderr}`);
+          }
+          console.log(`Conversion completed successfully: ${filename}${extension} -> ${filename}.mp4`);
+          resolve(outputFilePath); // Resolve with the path to the converted file
+        });
+      });
+    }; */
+
