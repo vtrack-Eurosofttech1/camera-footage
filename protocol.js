@@ -234,6 +234,13 @@ Device.prototype.getUploadedToS3 = function () {
   return this.uploaded_to_s3;
 };
 Device.prototype.getDeviceInfoData = function () {
+  let extension ;
+  if(this.extension_to_use==".h265"){
+    extension = ".mp4"
+
+  }else{
+    extension=this.extension_to_use
+  }
   return {
     progress :(this.received_packages/this.total_packages)*100,
     filetype: this.extension_to_use,
@@ -242,7 +249,7 @@ Device.prototype.getDeviceInfoData = function () {
     timestamp:this.newtimestamp ,
     deviceDirectory: this.deviceDirectory,
     filename: this.filename,
-    path:`https://vtracksolutions.s3.eu-west-2.amazonaws.com/media/${this.deviceDirectory.split("/")[1]}${this.timestamp}${this.extension_to_use}`,    
+    path:`https://vtracksolutions.s3.eu-west-2.amazonaws.com/media/${this.deviceDirectory.split("/")[1]}/${this.newtimestamp}${extension}`,    
     // actual_crc: this.actual_crc,
     received_packages: this.received_packages,
     total_packages: this.total_packages,

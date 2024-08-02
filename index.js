@@ -11,6 +11,7 @@ const { uploadToS3 } = require("./uploadToS3.js");
 const { exec } = require("child_process");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 process.setMaxListeners(12);
+
 dbg.logAndPrint(
   "Camera Transfer Server (Copyright © 2022, \x1b[34mTeltonika\x1b[0m), version 0.2.12"
 );
@@ -247,7 +248,11 @@ const filePath1 = path.join(__dirname, 'data.bin');
   function onConnClose() {
     // dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
     console.log("onConnClose", device_info.getUploadedToS3());
-    let timestamp = getUnixTimestamp(metadata.timestamp);
+    // let timestamp = 
+    const startIndex = metadata.timestamp.indexOf('(') + 1;
+const endIndex = metadata.timestamp.indexOf(')');
+    let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
+    // getUnixTimestamp(metadata.timestamp);
     console.log("timestamp", timestamp);
     const IMEI = device_info.getDeviceDirectory(); // IMEI number
     const filename = `${timestamp}` + ".mp4"; // filename
@@ -310,23 +315,29 @@ const filePath1 = path.join(__dirname, 'data.bin');
       }
       if (device_info.getExtension() == ".h265") {
         
+        console.log("camrea", device_info.getDeviceDirectory(),
+        frameratevideo,
+        `${timestamp}`,
+        device_info.getExtension())
         ConvertVideoFile(
           device_info.getDeviceDirectory(),
           frameratevideo,
           `${timestamp}`,
+       
           device_info.getExtension()
-        ).then((d) => {
+        ).then(async (d) => {
           const IMEI = device_info.getDeviceDirectory(); // IMEI number
           const filename = `${timestamp}` + ".mp4"; // filename
-
+          let cameraType =  device_info.getFileToDL()
           // Construct the path to the file
           var filePath = path.join(__dirname, IMEI, filename);
+        
           const fileContent = fs.readFileSync(filePath);
           params.Body = fileContent;
           //    console.log('uploading start', fileContent);
           let deviceInfo = device_info.getDeviceDirectory();
           let directory = deviceInfo.split("/").pop();
-
+         
           /*  uploadToS3(params,{fileType,fileName,deviceIMEI:directory})
            device_info.setUploadedToS3(true);
            fs.unlink(filePath, (err) => {
@@ -336,21 +347,22 @@ const filePath1 = path.join(__dirname, 'data.bin');
                 console.log('File deleted successfully');
             }
         }); */
-
-          uploadToS3(params, { fileType, fileName, deviceIMEI: directory })
-            .then((result) => {
-              device_info.setUploadedToS3(true);
-              fs.unlink(filePath, (err) => {
-                if (err) {
-                  console.error("Error deleting file:", err);
-                } else {
-                  console.log("File deleted successfully");
-                }
-              });
-            })
-            .catch((error) => {
-              console.error(error);
-            });
+        console.log("asdfcsd2", params, {
+          fileType,
+          fileName,
+          deviceIMEI: directory,
+          filePath,
+          cameraType})
+        uploadToS3(params, {
+          fileType,
+          fileName,
+          deviceIMEI: directory,
+          filePath,
+          cameraType,
+        });
+        device_info.setUploadedToS3(true);
+        }).catch(error => {
+          console.log("Error converting or uploading:222", error);
         });
       } else {
         const IMEI = device_info.getDeviceDirectory(); // IMEI number
