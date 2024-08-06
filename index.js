@@ -253,7 +253,7 @@ const filePath1 = path.join(__dirname, 'data.bin');
 const endIndex = metadata.timestamp.indexOf(')');
     let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
     // getUnixTimestamp(metadata.timestamp);
-    console.log("timestamp", timestamp);
+    console.log("timestamp", timestamp)
     const IMEI = device_info.getDeviceDirectory(); // IMEI number
     const filename = `${timestamp}` + ".mp4"; // filename
     var frameratevideo = metadata.framerate
@@ -375,19 +375,19 @@ const endIndex = metadata.timestamp.indexOf(')');
         params.Body = fileContent;
         let deviceInfo = device_info.getDeviceDirectory();
         let directory = deviceInfo.split("/").pop();
-
+        let cameraType =  device_info.getFileToDL()
         /*  uploadToS3(params,{fileType,fileName,deviceIMEI:directory});   
        device_info.setUploadedToS3(true);  */
-        uploadToS3(params, { fileType, fileName, deviceIMEI: directory }).then(
+        uploadToS3(params, { fileType, fileName, deviceIMEI: directory, cameraType }).then(
           (result) => {
             device_info.setUploadedToS3(true);
-            fs.unlink(filePath, (err) => {
-              if (err) {
-                console.error("Error deleting file:", err);
-              } else {
-                console.log("File deleted successfully");
-              }
-            });
+            // fs.unlink(filePath, (err) => {
+            //   if (err) {
+            //     console.error("Error deleting file:", err);
+            //   } else {
+            //     console.log("File deleted successfully");
+            //   }
+            // });
           }
         );
       }
