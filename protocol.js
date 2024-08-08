@@ -772,16 +772,16 @@ console.log("timestamo", timestamp)
       }
 
       if (device_info.getTotalPackages() == 0) {
-        dbg.logAndPrint("No packages are left for this file");
+     //   dbg.logAndPrint("No packages are left for this file");
         finish_comms = true;
       } else {
-        dbg.logAndPrint(
-          "Total packages incoming for this file: " +
-            device_info.getTotalPackages()
-        );
+        // dbg.logAndPrint(
+        //   "Total packages incoming for this file: " +
+        //     device_info.getTotalPackages()
+        // );
         const query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
         connection.write(query);
-        dbg.log("[TX]: [" + query.toString("hex") + "]");
+       // dbg.log("[TX]: [" + query.toString("hex") + "]");
         current_state = FSM_STATE.WAIT_FOR_CMD;
         let total_pkg = device_info.getTotalPackages();
         progress_bar.start(total_pkg, 0);
@@ -803,7 +803,7 @@ console.log("timestamo", timestamp)
         sync_packet - device_info.sync_offset_correction
       );
       device_info.repeat_count = 0;
-      dbg.log("Sync has been received! (" + sync_packet.toString() + ")");
+     // dbg.log("Sync has been received! (" + sync_packet.toString() + ")");
       current_state = FSM_STATE.WAIT_FOR_CMD;
       break;
     }
@@ -828,10 +828,11 @@ console.log("timestamo", timestamp)
       let actual_crc = data_buffer.readUInt16BE(4 + data_len);
       /* Calculate CRC and display with actual */
 
-      dbg.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
+    //  dbg.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
 
       if (computed_crc != actual_crc) {
-        dbg.error("CRC mismatch!");
+      //  dbg.error("CRC mismatch!");
+        console.log("CRC mismatch!");
         current_state = FSM_STATE.REPEAT_PACKET;
       } else {
         switch (device_info.getCameraType()) {
@@ -860,7 +861,14 @@ console.log("timestamo", timestamp)
           //     break;
           //   }
         }
-        dbg.log(
+        // dbg.log(
+        //   "Package: " +
+        //     device_info.getReceivedPackageCnt() +
+        //     " / " +
+        //     (device_info.getTotalPackages() -
+        //       (1 - device_info.sync_offset_correction))
+        // );
+        console.log(
           "Package: " +
             device_info.getReceivedPackageCnt() +
             " / " +
@@ -886,10 +894,10 @@ console.log("timestamo", timestamp)
           if (err) {
             console.error("Error writing file:", err);
           } else {
-            console.log("The file has been saved at:", filePath);
+            console.log("The buffer has been saved at:", filePath);
           }
         });
-        /* const totalPackages = device_info.getTotalPackages();
+        const totalPackages = device_info.getTotalPackages();
 const receivedPackages = device_info.getReceivedPackageCnt();
 console.log("Dsvsdv",totalPackages,receivedPackages )
 const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}`;
@@ -901,7 +909,7 @@ fs.writeFile(filePath2, content, (err) => {
         console.log("The file has been saved at:", filePath);
     }
 });
- */
+
       }
 
       if (
@@ -924,17 +932,17 @@ fs.writeFile(filePath2, content, (err) => {
         try {
           const jsonObject = JSON.parse(metadata_string);
           metadata.parseJsonData(metadata, device_info, jsonObject);
-          dbg.log("[METADATA]: " + metadata_string);
+        //  dbg.log("[METADATA]: " + metadata_string);
         } catch (error) {
-          dbg.logAndPrint("Error parsing METADATA: " + error);
+         // dbg.logAndPrint("Error parsing METADATA: " + error);
         }
       } else {
         metadata.parseData(metadata, device_info, raw_data);
-        dbg.log("[METADATA]: [" + raw_data.toString("hex") + "]");
+       // dbg.log("[METADATA]: [" + raw_data.toString("hex") + "]");
       }
-      dbg.print(
-        "Got metadata:\n\n" + metadata.getString(device_info.getCameraType())
-      );
+      // dbg.print(
+      //   "Got metadata:\n\n" + metadata.getString(device_info.getCameraType())
+      // );
       if (metadata_option == METADATA_TYPE.AT_START) {
         if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
           current_state = FSM_STATE.SEND_FILEPATH;
@@ -951,30 +959,30 @@ fs.writeFile(filePath2, content, (err) => {
     case CMD_ID.FILEPATH: {
       let path = ParseFilePath(data_buffer);
       if (path.search("mdas9") > -1) {
-        dbg.logAndPrint("Camera: ADAS");
+        //dbg.logAndPrint("Camera: ADAS");
         device_info.setCameraType(CAMERA_TYPE.ADAS);
       }
       if (path.search("dsm") > -1) {
-        dbg.logAndPrint("Camera: DSM");
+      //  dbg.logAndPrint("Camera: DSM");
         device_info.setCameraType(CAMERA_TYPE.DSM);
       }
 
       if (path.search("dualcam_front") > -1) {
-        dbg.logAndPrint("Camera: DualCam Front");
+    //    dbg.logAndPrint("Camera: DualCam Front");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
       }
 
       if (path.search("dualcam_rear") > -1) {
-        dbg.logAndPrint("Camera: DualCam Rear");
+       // dbg.logAndPrint("Camera: DualCam Rear");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
       }
 
       if (path.search("dashcam") > -1) {
-        dbg.logAndPrint("Camera: DashCam");
+     //   dbg.logAndPrint("Camera: DashCam");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
       }
 
-      dbg.logAndPrint("Got file path: " + path);
+ //     dbg.logAndPrint("Got file path: " + path);
 
       if (path.search("picture") > -1) {
         device_info.setExtension(".jpg");
@@ -1020,25 +1028,26 @@ fs.writeFile(filePath2, content, (err) => {
       let actual_crc = data_buffer.readUInt16BE(8 + data_len);
 
       /* Calculate CRC and display with actual */
-      dbg.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
+    //  dbg.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
 
       if (computed_crc != actual_crc) {
-        dbg.error("CRC mismatch!");
+      //  dbg.error("CRC mismatch!");
+      console.log("CRC mismatch!");
         current_state = FSM_STATE.REPEAT_PACKET;
       } else {
         if (device_info.getReceivedPackageCnt() != file_offset) {
-          dbg.error("Packet count mismatch!");
+       //   dbg.error("Packet count mismatch!");
           current_state = FSM_STATE.REPEAT_PACKET;
           break;
         }
         device_info.addToBuffer(raw_file, file_offset);
         device_info.incrementReceivedPackageCnt(data_len);
-        dbg.log(
-          "Package: " +
-            device_info.getReceivedPackageCnt() +
-            " / " +
-            device_info.getTotalPackages()
-        );
+        // dbg.log(
+        //   "Package: " +
+        //     device_info.getReceivedPackageCnt() +
+        //     " / " +
+        //     device_info.getTotalPackages()
+        // );
 
         let rx_pkg_cnt = device_info.getReceivedPackageCnt();
         progress_bar.update(rx_pkg_cnt);
@@ -1060,11 +1069,11 @@ fs.writeFile(filePath2, content, (err) => {
     case CMD_ID.COMPLETE: {
       const status_byte = data_buffer.readUInt32BE(4);
       if (status_byte > 0) {
-        dbg.logAndPrint(
-          "Device cannot complete transmission, error " +
-            status_byte +
-            COMPLETE_STATUS_DESCRIPTION[status_byte]
-        );
+        // dbg.logAndPrint(
+        //   "Device cannot complete transmission, error " +
+        //     status_byte +
+        //     COMPLETE_STATUS_DESCRIPTION[status_byte]
+        // );
         current_state = FSM_STATE.END;
         break;
       }
@@ -1166,7 +1175,7 @@ fs.writeFile(filePath2, content, (err) => {
 
     device_info.setDeviceDirectory("downloads/" + imei.toString());
     if (!fs.existsSync(device_info.getDeviceDirectory())) {
-      dbg.logAndPrint("Creating directory " + device_info.getDeviceDirectory());
+     // dbg.logAndPrint("Creating directory " + device_info.getDeviceDirectory());
       fs.mkdirSync(device_info.getDeviceDirectory());
     }
     // Read protocol version.
@@ -1174,7 +1183,7 @@ fs.writeFile(filePath2, content, (err) => {
     device_info.setProtocolVersion(protocol_version);
     // Read option byte to see what files are pending
     const option_byte = data_buffer.readUInt8(12);
-    dbg.logAndPrint("Option byte: " + (option_byte >>> 0).toString(2));
+   // dbg.logAndPrint("Option byte: " + (option_byte >>> 0).toString(2));
     if (
       camera_option == CAMERA_TYPE.ADAS ||
       camera_option == CAMERA_TYPE.DSM ||
@@ -1182,9 +1191,9 @@ fs.writeFile(filePath2, content, (err) => {
       protocol_version >= 6
     ) {
       if (option_byte & 0x02) {
-        dbg.logAndPrint("File available! Sending file path request.");
+     //   dbg.logAndPrint("File available! Sending file path request.");
         const query = Buffer.from([0, 12, 0, 2, 0, 0]);
-        dbg.log("[TX]: [" + query.toString("hex") + "]");
+       // dbg.log("[TX]: [" + query.toString("hex") + "]");
         console.log("[TX]: [" + query.toString("hex") + "]")
         connection.write(query);
         current_state = FSM_STATE.WAIT_FOR_CMD;
@@ -1198,29 +1207,29 @@ fs.writeFile(filePath2, content, (err) => {
       file_available == false
     ) {
       if (option_byte & 0x20) {
-        dbg.logAndPrint("Camera: DUALCAM");
-        dbg.logAndPrint("DualCam rear video available!");
+    //    dbg.logAndPrint("Camera: DUALCAM");
+    //    dbg.logAndPrint("DualCam rear video available!");
         device_info.setFileToDL(DUALCAM_FILE_PATH.DUALCAM_VIDEO_REAR);
         device_info.setExtension(".h265");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
         file_available = true;
       } else if (option_byte & 0x10) {
-        dbg.logAndPrint("Camera: DUALCAM");
-        dbg.logAndPrint("DualCam front video available!");
+     //   dbg.logAndPrint("Camera: DUALCAM");
+      //  dbg.logAndPrint("DualCam front video available!");
         device_info.setFileToDL(DUALCAM_FILE_PATH.DUALCAM_VIDEO_FRONT);
         device_info.setExtension(".h265");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
         file_available = true;
       } else if (option_byte & 0x08) {
-        dbg.logAndPrint("Camera: DUALCAM");
-        dbg.logAndPrint("DualCam rear photo available!");
+      //  dbg.logAndPrint("Camera: DUALCAM");
+     //   dbg.logAndPrint("DualCam rear photo available!");
         device_info.setFileToDL(DUALCAM_FILE_PATH.DUALCAM_PHOTO_REAR);
         device_info.setExtension(".jpeg");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
         file_available = true;
       } else if (option_byte & 0x04) {
-        dbg.logAndPrint("Camera: DUALCAM");
-        dbg.logAndPrint("DualCam front photo available!");
+    //    dbg.logAndPrint("Camera: DUALCAM");
+     //   dbg.logAndPrint("DualCam front photo available!");
         device_info.setFileToDL(DUALCAM_FILE_PATH.DUALCAM_PHOTO_FRONT);
         device_info.setExtension(".jpeg");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
@@ -1228,7 +1237,7 @@ fs.writeFile(filePath2, content, (err) => {
       }
 
       if (file_available == true) {
-        dbg.logAndPrint("Got DualCam file path.");
+      //  dbg.logAndPrint("Got DualCam file path.");
         device_info.clearBuffer();
         device_info.setLastCRC(0);
       }
@@ -1242,10 +1251,10 @@ fs.writeFile(filePath2, content, (err) => {
 
     if (file_available == false) {
       device_info.setFileToDL(0);
-      dbg.logAndPrint("No files available!");
+    //  dbg.logAndPrint("No files available!");
       current_state = FSM_STATE.SEND_END;
     } else {
-      dbg.logAndPrint("Protocol version: " + protocol_version);
+    //  dbg.logAndPrint("Protocol version: " + protocol_version);
 
       let filename = new Date()
         .toISOString()
@@ -1254,7 +1263,7 @@ fs.writeFile(filePath2, content, (err) => {
         .replace(/:/g, "")
         .replace(/ /g, "");
       device_info.setCurrentFilename(filename);
-      dbg.logAndPrint("Filename: " + device_info.getCurrentFilename());
+    //  dbg.logAndPrint("Filename: " + device_info.getCurrentFilename());
     }
   }
   if (current_state == FSM_STATE.FINISH_RECEIVING) {
@@ -1276,11 +1285,11 @@ fs.writeFile(filePath2, content, (err) => {
       function (err) {
         temp_file_buff = Buffer.alloc(0);
         if (err) return dbg.error(err);
-        dbg.logAndPrint(
-          "Data written to file " +
-            device_info.getCurrentFilename() +
-            " successfully"
-        );
+        // dbg.logAndPrint(
+        //   "Data written to file " +
+        //     device_info.getCurrentFilename() +
+        //     " successfully"
+        // );
       }
     );
 
@@ -1331,13 +1340,13 @@ fs.writeFile(filePath2, content, (err) => {
     //s3
   }
   if (current_state == FSM_STATE.SEND_FILEPATH) {
-    dbg.logAndPrint("Requesting file...");
+ //   dbg.logAndPrint("Requesting file...");
     device_info.clearBuffer();
     device_info.setLastCRC(0);
     if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
       const query = Buffer.from([0, 8, 0, 7, 0, 0, 0, 0, 0, 0, 0]);
       query.write(device_info.getFileToDL(), 4);
-      dbg.log("[TX]: [" + query.toString("hex") + "]");
+   //   dbg.log("[TX]: [" + query.toString("hex") + "]");
       connection.write(query);
     }
     if (
@@ -1348,7 +1357,7 @@ fs.writeFile(filePath2, content, (err) => {
         Buffer.from([0, 8, 0, device_info.getFileToDL().length]),
         Buffer.from(device_info.getFileToDL())
       ]);
-      dbg.log("[TX]: [" + query.toString("hex") + "]");
+    //  dbg.log("[TX]: [" + query.toString("hex") + "]");
       connection.write(query);
     }
     current_state = FSM_STATE.WAIT_FOR_CMD;
@@ -1364,17 +1373,17 @@ fs.writeFile(filePath2, content, (err) => {
       offset = offset + 1;
     }
     query.writeUInt32BE(offset, 4);
-    dbg.logAndPrint(
-      "Requesting for a repeat of last packet: " + offset.toString()
-    );
-    dbg.log("[TX]: [" + query.toString("hex") + "]");
+    // dbg.logAndPrint(
+    //   "Requesting for a repeat of last packet: " + offset.toString()
+    // );
+    // dbg.log("[TX]: [" + query.toString("hex") + "]");
     console.log("[TX]: [" + query.toString("hex") + "]"+offset)
     connection.write(query);
     device_info.repeat_sent_ts = Date.now();
     device_info.repeat_count++;
   }
   if (current_state == FSM_STATE.SEND_METADATA_REQUEST) {
-    dbg.logAndPrint("Requesting metadata...");
+  //  dbg.logAndPrint("Requesting metadata...");
     let query = 0;
     if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
       query = Buffer.from([0, 10, 0, 7, 0, 0, 0, 0, 0, 0, 0]);
@@ -1382,15 +1391,15 @@ fs.writeFile(filePath2, content, (err) => {
     } else {
       query = Buffer.from([0, 10, 0, 0]);
     }
-    dbg.log("[TX]: [" + query.toString("hex") + "]");
+  //  dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
     current_state = FSM_STATE.WAIT_FOR_CMD;
   }
   if (current_state == FSM_STATE.SEND_COMPLETE) {
-    dbg.logAndPrint("Completing upload");
+   // dbg.logAndPrint("Completing upload");
     // Close session
     const query = Buffer.from([0, 5, 0, 4, 0, 0, 0, 0]);
-    dbg.log("[TX]: [" + query.toString("hex") + "]");
+   // dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
 
     device_info.setTotalPackages(0);
@@ -1479,17 +1488,17 @@ console.log("asdfcsd", cameraType)
       uploadToS3(params, { fileType, fileName, deviceIMEI: directory,cameraType });
       device_info.setUploadedToS3(true);
     }
-
-    dbg.logAndPrint("Looking for more files...");
+//
+   // dbg.logAndPrint("Looking for more files...");
     const query = Buffer.from([0, 9]);
-    dbg.log("[TX]: [" + query.toString("hex") + "]");
+   // dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
     current_state = FSM_STATE.INIT;
   }
   if (current_state == FSM_STATE.SEND_END) {
-    dbg.logAndPrint("Closing session");
+  ///  dbg.logAndPrint("Closing session");
     const query = Buffer.from([0, 0, 0, 0]);
-    dbg.log("[TX]: [" + query.toString("hex") + "]");
+  ///  dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
     current_state = FSM_STATE.END;
   }
