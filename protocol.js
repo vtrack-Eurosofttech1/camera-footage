@@ -1185,6 +1185,7 @@ fs.writeFile(filePath2, content, (err) => {
         dbg.logAndPrint("File available! Sending file path request.");
         const query = Buffer.from([0, 12, 0, 2, 0, 0]);
         dbg.log("[TX]: [" + query.toString("hex") + "]");
+        console.log("[TX]: [" + query.toString("hex") + "]")
         connection.write(query);
         current_state = FSM_STATE.WAIT_FOR_CMD;
         file_available = true;
@@ -1367,6 +1368,7 @@ fs.writeFile(filePath2, content, (err) => {
       "Requesting for a repeat of last packet: " + offset.toString()
     );
     dbg.log("[TX]: [" + query.toString("hex") + "]");
+    console.log("[TX]: [" + query.toString("hex") + "]"+offset)
     connection.write(query);
     device_info.repeat_sent_ts = Date.now();
     device_info.repeat_count++;
@@ -1447,7 +1449,11 @@ fs.writeFile(filePath2, content, (err) => {
 
         // Construct the path to the file
         const filePath = path.join(__dirname, IMEI, filename);
-        const fileContent = fs.readFileSync(filePath);
+        let fileContent;
+          try{
+           fileContent = fs.readFileSync(filePath);}catch(e){
+            console.log(e.message)
+          }
         params.Body = fileContent;
         //    console.log("uploading start", fileContent);
         let deviceInfo = device_info.getDeviceDirectory();

@@ -167,6 +167,7 @@ const filePath1 = path.join(__dirname, 'data.bin');
       return;
     }
 
+console.log("===============")
     
     // const datas = data.toString('utf8');
     // Write the data to the text file
@@ -176,7 +177,10 @@ const filePath1 = path.join(__dirname, 'data.bin');
         } else {
             console.log("Data written to file successfully.");
         }
-    });
+    })
+console.log("===============1")
+
+
 
 
 
@@ -313,6 +317,7 @@ const endIndex = metadata.timestamp.indexOf(')');
           ContentType: "image/jpeg"
         };
       }
+      console.log(params,"09999")
       if (device_info.getExtension() == ".h265") {
         
         console.log("camrea", device_info.getDeviceDirectory(),
@@ -331,8 +336,11 @@ const endIndex = metadata.timestamp.indexOf(')');
           let cameraType =  device_info.getFileToDL()
           // Construct the path to the file
           var filePath = path.join(__dirname, IMEI, filename);
-        
-          const fileContent = fs.readFileSync(filePath);
+        let fileContent;
+          try{
+           fileContent = fs.readFileSync(filePath);}catch(e){
+            console.log(e.message)
+          }
           params.Body = fileContent;
           //    console.log('uploading start', fileContent);
           let deviceInfo = device_info.getDeviceDirectory();
@@ -369,8 +377,15 @@ const endIndex = metadata.timestamp.indexOf(')');
         const filename = `${timestamp}` + device_info.getExtension(); // filename
 
         // Construct the path to the file
+        console.log('-0-0-0-0-' ,IMEI, filename)
         const filePath = path.join(__dirname, IMEI, filename);
-        const fileContent = fs.readFileSync(filePath);
+        let fileContent 
+
+        try{
+ fileContent 
+        = fs.readFileSync(filePath);}catch(e){
+          console.log(e.message)
+        }
         console.log("data is ", fileContent);
         params.Body = fileContent;
         let deviceInfo = device_info.getDeviceDirectory();

@@ -1,7 +1,7 @@
 const { Server } = require("socket.io");
 const http = require("http");
 
-const WEB_SERVER_PORT = 8080;
+const WEB_SERVER_PORT = 7057;
 const httpServer = http.createServer();
 const io = new Server(httpServer, { cors: { origin: "*" } });
 
