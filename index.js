@@ -160,25 +160,25 @@ const filePath1 = path.join(__dirname, 'data.bin');
   function onConnData(data) {
     // Check if there is a TCP buffer overflow
 
-    console.log("ok we have that data", data.length);
+//     console.log("ok we have that data", data.length);
 
-    if (data.length >= buffer_size) {
-      dbg.error("Too much data: " + data.length + " >= " + buffer_size);
-      return;
-    }
+//     if (data.length >= buffer_size) {
+//       dbg.error("Too much data: " + data.length + " >= " + buffer_size);
+//       return;
+//     }
 
-console.log("===============")
+// console.log("===============")
     
-    // const datas = data.toString('utf8');
-    // Write the data to the text file
-    fs.appendFile(filePath1, data + '\n', (err) => {
-        if (err) {
-            console.error("Error writing to file:", err);
-        } else {
-            console.log("Data written to file successfully.");
-        }
-    })
-console.log("===============1")
+//     // const datas = data.toString('utf8');
+//     // Write the data to the text file
+//     fs.appendFile(filePath1, data + '\n', (err) => {
+//         if (err) {
+//             console.error("Error writing to file:", err);
+//         } else {
+//             console.log("Data written to file successfully.");
+//         }
+//     })
+// console.log("===============1")
 
 
 
