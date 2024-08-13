@@ -1256,8 +1256,51 @@ fs.writeFile(filePath2, content, (err) => {
       if (file_available == true) {
         console.log("file_available")
        dbg.logAndPrint("Got DualCam file path.");
-        device_info.clearBuffer();
+       try {
+        const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
+if(fs.existsSync(filePath2)){
+let packagescnt ;
+  let crcvalue;
+  const filePath = 'ii.txt';
+
+  fs.readFile(filePath2, 'utf8', (err, data) => {
+    if (err) {
+      console.error('Error reading the file:', err);
+      return;
+    }
+
+    // Regular expressions to extract values
+    const receivedPackagesRegex = /ReceivedPackages:\s*(\d+)/;
+    const lastcrcRegex = /lastcrc:\s*(\d+)/;
+
+    // Find matches
+    const receivedPackagesMatch = data.match(receivedPackagesRegex);
+    const lastcrcMatch = data.match(lastcrcRegex);
+
+    // Extract values
+    const receivedPackages = receivedPackagesMatch ? receivedPackagesMatch[1] : 'Not found';
+    const lastcrc = lastcrcMatch ? lastcrcMatch[1] : 'Not found';
+    packagescnt = receivedPackages
+    crcvalue =lastcrc
+  
+  });
+  device_info.setLastCRC(crcvalue);
+  device_info.setReceivedPackageCnt(packagescnt);
+ 
+ 
+}
+else {
+ 
+  device_info.clearBuffer();
         device_info.setLastCRC(0);
+}
+       } catch (error) {
+        
+       }
+       
+
+/*         device_info.clearBuffer();
+        device_info.setLastCRC(0); */
       }
       if (metadata_option == METADATA_TYPE.AT_START) {
     //    console.log("AT_START")
