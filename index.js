@@ -14,7 +14,7 @@ process.setMaxListeners(12);
 
 /* dbg.logAndPrint(
   "Camera Transfer Server (Copyright © 2022, \x1b[34mTeltonika\x1b[0m), version 0.2.12"
-); */
+); */ //"dev": "nodemon index.js -p 7056 -r 2 -m 1", "dev": "nodemon index.js --tls -p 7056 -c ./certs/server_cert.pem -k ./certs/server_key.pem -r 2 -m 1"
 const optionDefinitions = [
   { name: "help", alias: "h", type: Boolean },
   { name: "tls", alias: "t", type: Boolean },
@@ -88,6 +88,7 @@ if (
   typeof args.cert !== "undefined"
 ) {
  // dbg.logAndPrint("Starting TLS mode");
+ console.log("Starting TLS mode")
   var options = {
     key: fs.readFileSync(args.key),
     cert: fs.readFileSync(args.cert)
@@ -95,6 +96,8 @@ if (
   server = tls.createServer(options, handleConnection);
 } else {
  /// dbg.logAndPrint("Starting REGULAR mode");
+
+ console.log("Starting REGULAR mode")
   var options;
   server = net.createServer(options, handleConnection);
 }
@@ -123,7 +126,19 @@ function handleConnection(connection) {
   let cmd_id = 0;
   let device_info = new protocol.DeviceDescriptor();
   let metadata = new protocol.MetaDataDescriptor();
+  let lastActivityTime = Date.now(); // Track the last activity time
   dbg.logAndPrint("Client connected: " + remoteAddress);
+
+  const INACTIVITY_TIMEOUT = 15000; // 15 seconds
+
+  // Timer to check inactivity
+  const inactivityTimer = setInterval(() => {
+    if (Date.now() - lastActivityTime > INACTIVITY_TIMEOUT) {
+      console.log("Closing connection due to inactivity.");
+      connection.end(); // Close the connection
+      clearInterval(inactivityTimer); // Clear the interval timer
+    }
+  }, 1000); // Check every second
   connection.on("data", onConnData);
   connection.once("close", onConnClose);
   connection.on("error", onConnError);
@@ -158,6 +173,7 @@ function handleConnection(connection) {
 //const filePath1 = path.join(__dirname, 'data.bin');
 
   function onConnData(data) {
+    lastActivityTime = Date.now();
     // Check if there is a TCP buffer overflow
 
 //     console.log("ok we have that data", data.length);
@@ -253,6 +269,7 @@ function handleConnection(connection) {
     }
   }
   function onConnClose() {
+    clearInterval(inactivityTimer);
     // dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
     console.log("onConnClose", device_info.getUploadedToS3());
     // let timestamp = 
@@ -271,20 +288,7 @@ const endIndex = metadata.timestamp.indexOf(')');
       !isNaN(timestamp) &&
       !fs.existsSync(filePath)
     ) {
-      console.log("in");
-      /*   const IMEI = device_info.getDeviceDirectory(); // IMEI number
-       const filename = `${timestamp}` + '.mp4'; // filename
-       
-       // Construct the path to the file
-       const filePath = path.join(__dirname, 'downloads', IMEI, filename);
-                  
-       if (device_info.getUploadedToS3() ==false && !fs.existsSync(filePath) ) {
-         console.log('onConnError 4513')
-         const query = Buffer.from([0, 0, 0, 0]);
-         dbg.log('[TX]: [' + query.toString('hex') + ']');
-         connection.write(query);
- 
-         console.log('DSvsdf onConnError 2', device_info.getExtension()) */
+      console.log("in");      
       var fileName;
       var dateValue = new Date();
       var fileType = 1;

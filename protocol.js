@@ -719,7 +719,7 @@ function ParseFilePath(a) {
   return path;
 }
 function SaveToFileJSON(jsonString, path) {
-  fs.writeFile(path, jsonString, (err) => {
+  fs.appendFile(path, jsonString, (err) => {
     if (err) {
       dbg.error("Error writing JSON to file", err);
     } else {
@@ -755,7 +755,8 @@ console.log("timestamo", timestamp)
   var frameratevideo = metadata.framerate
 
   switch (cmd_id) {
-    case CMD_ID.START: {
+    case CMD_ID.START: { console.log("start ")
+      dbg.logAndPrint("cmd start");
       switch (device_info.getCameraType()) {
         case CAMERA_TYPE.DUALCAM: {
           device_info.setTotalPackages(data_buffer.readUInt32BE(4));
@@ -772,9 +773,10 @@ console.log("timestamo", timestamp)
       }
 
       if (device_info.getTotalPackages() == 0) {
-     //   dbg.logAndPrint("No packages are left for this file");
+       dbg.logAndPrint("No packages are left for this file start cmd");
         finish_comms = true;
       } else {
+        dbg.logAndPrint("cmd start else total packages incoming for this file");
         // dbg.logAndPrint(
         //   "Total packages incoming for this file: " +
         //     device_info.getTotalPackages()
@@ -789,12 +791,14 @@ console.log("timestamo", timestamp)
       }
       break;
     }
-    case CMD_ID.SYNC: {
+    case CMD_ID.SYNC: { console.log("sync")
+      dbg.logAndPrint("cmd sync");
       device_info.sync_received = true;
       device_info.setLastCRC(0);
       let sync_packet = data_buffer.readUInt32BE(4);
 
       if (device_info.first_sync_received == false) {
+        dbg.logAndPrint("cmd sync if");
         device_info.first_sync_received = true;
         device_info.sync_offset_correction = sync_packet;
       }
@@ -809,8 +813,10 @@ console.log("timestamo", timestamp)
     }
 
     case CMD_ID.DATA: {
-      console.log("=====")
+      console.log("=data")
+      dbg.logAndPrint("cmd data");
       if (device_info.sync_received == false) {
+        dbg.logAndPrint("cmd data sync recived");
         current_state = FSM_STATE.WAIT_FOR_CMD;
         break;
       }
@@ -833,8 +839,10 @@ console.log("timestamo", timestamp)
       if (computed_crc != actual_crc) {
       //  dbg.error("CRC mismatch!");
         console.log("CRC mismatch!");
+        dbg.logAndPrint("CRC mismatch!")
         current_state = FSM_STATE.REPEAT_PACKET;
       } else {
+        dbg.logAndPrint("cmd data else crc ")
         switch (device_info.getCameraType()) {
           case CAMERA_TYPE.DUALCAM: {
             device_info.addToBuffer(
@@ -868,16 +876,18 @@ console.log("timestamo", timestamp)
         //     (device_info.getTotalPackages() -
         //       (1 - device_info.sync_offset_correction))
         // );
-        console.log(
+        // device_info.addToBuffer(raw_file);
+        let rx_pkg_cnt = device_info.getReceivedPackageCnt();
+        console.log(rx_pkg_cnt)
+        progress_bar.update(rx_pkg_cnt);
+        dbg.logAndPrint("cmd data rx_pkg_cnt" + rx_pkg_cnt)
+        console.log(rx_pkg_cnt,
           "Package: " +
             device_info.getReceivedPackageCnt() +
             " / " +
             (device_info.getTotalPackages() -
               (1 - device_info.sync_offset_correction))
         );
-        // device_info.addToBuffer(raw_file);
-        let rx_pkg_cnt = device_info.getReceivedPackageCnt();
-        progress_bar.update(rx_pkg_cnt);
         emitdatatoSocket(device_info.getDeviceInfoData());
         // Save for calculating next packet's CRC
         device_info.setLastCRC(actual_crc);
@@ -923,11 +933,13 @@ fs.writeFile(filePath2, content, (err) => {
     }
 
     case CMD_ID.METADATA: {
+      dbg.logAndPrint("cmd METADATA");
       /* Read data length minus CRC */
       let data_len = data_buffer.readUInt16BE(2);
       /* Get raw file data */
       let raw_data = data_buffer.slice(4, 4 + data_len);
       if (device_info.getProtocolVersion() >= 6) {
+        
         const metadata_string = raw_data.toString("utf-8");
         try {
           const jsonObject = JSON.parse(metadata_string);
@@ -945,6 +957,7 @@ fs.writeFile(filePath2, content, (err) => {
       // );
       if (metadata_option == METADATA_TYPE.AT_START) {
         if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
+          dbg.logAndPrint("cmd METADATA SEND_FILEPATH");
           current_state = FSM_STATE.SEND_FILEPATH;
         }
         if (
@@ -957,6 +970,7 @@ fs.writeFile(filePath2, content, (err) => {
       break;
     }
     case CMD_ID.FILEPATH: {
+      dbg.logAndPrint("cmd FILEPATH");
       let path = ParseFilePath(data_buffer);
       if (path.search("mdas9") > -1) {
         //dbg.logAndPrint("Camera: ADAS");
@@ -1008,6 +1022,7 @@ fs.writeFile(filePath2, content, (err) => {
       break;
     }
     case CMD_ID.ENHANCED_DATA: {
+      dbg.logAndPrint("cmd ENHANCED_DATA");
       if (device_info.sync_received == false) {
         current_state = FSM_STATE.WAIT_FOR_CMD;
         break;
@@ -1067,6 +1082,7 @@ fs.writeFile(filePath2, content, (err) => {
       break;
     }
     case CMD_ID.COMPLETE: {
+      dbg.logAndPrint("cmd COMPLETE");
       const status_byte = data_buffer.readUInt32BE(4);
       if (status_byte > 0) {
         // dbg.logAndPrint(
@@ -1080,7 +1096,8 @@ fs.writeFile(filePath2, content, (err) => {
     }
   }
 
-  if (current_state == FSM_STATE.INIT) {
+  if (current_state == FSM_STATE.INIT) {console.log("init")
+    dbg.logAndPrint("FSM_STATE.INIT");
     //Create dir with device IMEI if it doesn't exist
     if (!fs.existsSync("downloads")) {
       fs.mkdirSync("downloads");
@@ -1215,7 +1232,7 @@ fs.writeFile(filePath2, content, (err) => {
         file_available = true;
       } else if (option_byte & 0x10) {
      //   dbg.logAndPrint("Camera: DUALCAM");
-      //  dbg.logAndPrint("DualCam front video available!");
+       dbg.logAndPrint("DualCam front video available!");
         device_info.setFileToDL(DUALCAM_FILE_PATH.DUALCAM_VIDEO_FRONT);
         device_info.setExtension(".h265");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
@@ -1229,7 +1246,7 @@ fs.writeFile(filePath2, content, (err) => {
         file_available = true;
       } else if (option_byte & 0x04) {
     //    dbg.logAndPrint("Camera: DUALCAM");
-     //   dbg.logAndPrint("DualCam front photo available!");
+        dbg.logAndPrint("DualCam front photo available!");
         device_info.setFileToDL(DUALCAM_FILE_PATH.DUALCAM_PHOTO_FRONT);
         device_info.setExtension(".jpeg");
         device_info.setCameraType(CAMERA_TYPE.DUALCAM);
@@ -1237,25 +1254,32 @@ fs.writeFile(filePath2, content, (err) => {
       }
 
       if (file_available == true) {
-      //  dbg.logAndPrint("Got DualCam file path.");
+        console.log("file_available")
+       dbg.logAndPrint("Got DualCam file path.");
         device_info.clearBuffer();
         device_info.setLastCRC(0);
       }
       if (metadata_option == METADATA_TYPE.AT_START) {
+    //    console.log("AT_START")
+        dbg.logAndPrint("AT_START!");
         current_state = FSM_STATE.SEND_METADATA_REQUEST;
       }
       if (metadata_option == METADATA_TYPE.NO_METADATA) {
+      //  console.log("NO_METADATA")
+        dbg.logAndPrint("NO_METADATA!");
         current_state = FSM_STATE.SEND_FILEPATH;
       }
     }
 
     if (file_available == false) {
       device_info.setFileToDL(0);
-    //  dbg.logAndPrint("No files available!");
+      //console.log("if false")
+     dbg.logAndPrint("init if false");
       current_state = FSM_STATE.SEND_END;
     } else {
-    //  dbg.logAndPrint("Protocol version: " + protocol_version);
-
+  //  dbg.logAndPrint("Protocol version: " + protocol_version);\
+  dbg.logAndPrint("init else false");
+ //   console.log("else false")
       let filename = new Date()
         .toISOString()
         .replace(/T/, " ")
@@ -1267,6 +1291,7 @@ fs.writeFile(filePath2, content, (err) => {
     }
   }
   if (current_state == FSM_STATE.FINISH_RECEIVING) {
+    dbg.logAndPrint("FSM_STATE.FINISH_RECEIVING");
     progress_bar.stop();
     emitdatatoSocket(device_info.getDeviceInfoData());
 
@@ -1283,7 +1308,7 @@ fs.writeFile(filePath2, content, (err) => {
         device_info.getExtension(),
       temp_file_buff,
       function (err) {
-        temp_file_buff = Buffer.alloc(0);
+        // temp_file_buff = Buffer.alloc(0);
         if (err) return dbg.error(err);
         // dbg.logAndPrint(
         //   "Data written to file " +
@@ -1340,6 +1365,7 @@ fs.writeFile(filePath2, content, (err) => {
     //s3
   }
   if (current_state == FSM_STATE.SEND_FILEPATH) {
+    dbg.logAndPrint("FSM_STATE.SEND_FILEPATH");
  //   dbg.logAndPrint("Requesting file...");
     device_info.clearBuffer();
     device_info.setLastCRC(0);
@@ -1363,6 +1389,7 @@ fs.writeFile(filePath2, content, (err) => {
     current_state = FSM_STATE.WAIT_FOR_CMD;
   }
   if (current_state == FSM_STATE.REPEAT_PACKET) {
+    dbg.logAndPrint("FSM_STATE.REPEAT_PACKET");
     device_info.sync_received = false;
     let offset = device_info.getReceivedPackageCnt();
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
@@ -1379,11 +1406,13 @@ fs.writeFile(filePath2, content, (err) => {
     // dbg.log("[TX]: [" + query.toString("hex") + "]");
     console.log("[TX]: [" + query.toString("hex") + "]"+offset)
     connection.write(query);
+    console.log("vd",  connection.write(query))
     device_info.repeat_sent_ts = Date.now();
     device_info.repeat_count++;
   }
   if (current_state == FSM_STATE.SEND_METADATA_REQUEST) {
   //  dbg.logAndPrint("Requesting metadata...");
+  dbg.logAndPrint("FSM_STATE.SEND_METADATA_REQUEST");
     let query = 0;
     if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
       query = Buffer.from([0, 10, 0, 7, 0, 0, 0, 0, 0, 0, 0]);
@@ -1397,6 +1426,7 @@ fs.writeFile(filePath2, content, (err) => {
   }
   if (current_state == FSM_STATE.SEND_COMPLETE) {
    // dbg.logAndPrint("Completing upload");
+   dbg.logAndPrint("FSM_STATE.SEND_COMPLETE");
     // Close session
     const query = Buffer.from([0, 5, 0, 4, 0, 0, 0, 0]);
    // dbg.log("[TX]: [" + query.toString("hex") + "]");
@@ -1412,6 +1442,7 @@ fs.writeFile(filePath2, content, (err) => {
     current_state = FSM_STATE.END;
   }
   if (current_state == FSM_STATE.LOOK_FOR_FILES) {
+    dbg.logAndPrint("FSM_STATE.LOOK_FOR_FILES");
     var fileName;
     var dateValue = new Date();
     var fileType = 1;
@@ -1496,6 +1527,7 @@ console.log("asdfcsd", cameraType)
     current_state = FSM_STATE.INIT;
   }
   if (current_state == FSM_STATE.SEND_END) {
+    dbg.logAndPrint("FSM_STATE.LOOK_FOR_FILES");
   ///  dbg.logAndPrint("Closing session");
     const query = Buffer.from([0, 0, 0, 0]);
   ///  dbg.log("[TX]: [" + query.toString("hex") + "]");

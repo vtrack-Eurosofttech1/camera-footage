@@ -1,0 +1,46 @@
+{"level":"info","message":"Client connected: ::ffff:223.123.107.155:17764","timestamp":"2024-08-13T09:10:24.379Z"}
+{"level":"info","message":"FSM_STATE.INIT","timestamp":"2024-08-13T09:10:24.601Z"}
+{"level":"info","message":"FSM_STATE.SEND_METADATA_REQUEST","timestamp":"2024-08-13T09:10:24.605Z"}
+{"level":"info","message":"cmd METADATA","timestamp":"2024-08-13T09:10:25.021Z"}
+{"level":"info","message":"FSM_STATE.SEND_FILEPATH","timestamp":"2024-08-13T09:10:25.023Z"}
+{"level":"info","message":"cmd start","timestamp":"2024-08-13T09:10:25.457Z"}
+{"level":"info","message":"cmd sync","timestamp":"2024-08-13T09:10:25.900Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:26.161Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:26.493Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:26.708Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:26.976Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:27.229Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:27.508Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:27.788Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:28.088Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:28.347Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:28.636Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:28.916Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:29.168Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:29.447Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:29.707Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:29.988Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:30.247Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:30.508Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:30.795Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:31.048Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:31.328Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:31.587Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:31.895Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:32.147Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:32.408Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:32.668Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:32.947Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:33.227Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:33.495Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:33.768Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:34.027Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:34.288Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:34.567Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:34.809Z"}
+{"level":"info","message":"cmd data","timestamp":"2024-08-13T09:10:35.087Z"}
+{"level":"info","message":"FSM_STATE.FINISH_RECEIVING","timestamp":"2024-08-13T09:10:35.089Z"}
+{"level":"info","message":"FSM_STATE.LOOK_FOR_FILES","timestamp":"2024-08-13T09:10:35.091Z"}
+{"level":"info","message":"Client connected: ::ffff:223.123.107.155:17765","timestamp":"2024-08-13T09:10:51.876Z"}
+{"level":"info","message":"FSM_STATE.INIT","timestamp":"2024-08-13T09:10:51.982Z"}
+{"level":"info","message":"FSM_STATE.LOOK_FOR_FILES","timestamp":"2024-08-13T09:10:51.984Z"}

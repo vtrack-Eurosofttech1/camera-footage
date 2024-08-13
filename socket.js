@@ -1,13 +1,24 @@
 const { Server } = require("socket.io");
-const http = require("http");
+// const https = require("https");
+const server = require("https");
+const fs = require("fs");
+
+const certPath = "./certs/server_cert.pem"
+const keyPath = "./certs/server_key.pem"
+var httpsOptions = {
+    key: fs.readFileSync(keyPath, 'utf8'),
+    cert: fs.readFileSync(certPath, 'utf8')
+  };
+
 
 const WEB_SERVER_PORT = 7057;
-const httpServer = http.createServer();
-const io = new Server(httpServer, { cors: { origin: "*" } });
+const httpsServer = server.createServer(httpsOptions);
+const io = new Server({ cors: { origin: "*" } });
 
-httpServer.listen(WEB_SERVER_PORT, () => {
+httpsServer.listen(WEB_SERVER_PORT, () => {
     console.log("Socket Server is running on port " + WEB_SERVER_PORT);
 });
+io.listen(httpsServer)
 
 io.on("connection", (socket) => {
     console.log("A client connected:", socket.id,socket.handshake.query);
