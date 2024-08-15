@@ -762,17 +762,10 @@ console.log("timestamo", timestamp)
           device_info.setTotalPackages(data_buffer.readUInt32BE(4));
           break;
         }
-        // case CAMERA_TYPE.ADAS: {
-        //   device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-        //   break;
-        // }
-        // case CAMERA_TYPE.DSM: {
-        //   device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-        //   break;
-        // }
+        
       }
 
-      if (device_info.getTotalPackages() == 0) {
+     /*  if (device_info.getTotalPackages() == 0) {
    dbg.logAndPrint("No packages are left for this file start cmd");
     finish_comms = true;
   } else {
@@ -788,14 +781,88 @@ console.log("timestamo", timestamp)
         let total_pkg = device_info.getTotalPackages();
         progress_bar.start(total_pkg, 0);
         emitdatatoSocket(device_info.getDeviceInfoData());
-               }
+               } */
+        try {
+          const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
+  if(fs.existsSync(filePath2)){
+  let packagescnt ;
+    let crcvalue;
+    const filePath = 'ii.txt';
+  
+    fs.readFile(filePath2, 'utf8', (err, data) => {
+      if (err) {
+        console.error('Error reading the file:', err);
+        return;
+      }
+  
+      // Regular expressions to extract values
+      const receivedPackagesRegex = /ReceivedPackages:\s*(\d+)/;
+      const lastcrcRegex = /lastcrc:\s*(\d+)/;
+  
+      // Find matches
+      const receivedPackagesMatch = data.match(receivedPackagesRegex);
+      const lastcrcMatch = data.match(lastcrcRegex);
+  
+      // Extract values
+      const receivedPackages = receivedPackagesMatch ? receivedPackagesMatch[1] : 'Not found';
+      const lastcrc = lastcrcMatch ? lastcrcMatch[1] : 'Not found';
+      packagescnt = receivedPackages
+      crcvalue =lastcrc
+    console.log("read ", packagescnt)
+    device_info.setLastCRC(crcvalue);
+    device_info.setReceivedPackageCnt(packagescnt);
+    
+    let offset = device_info.getReceivedPackageCnt();
+    let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
+  
+      offset = offset + 1;
+    
+    query.writeUInt32BE(offset, 4);
+          connection.write(query);
+         // dbg.log("[TX]: [" + query.toString("hex") + "]");
+          current_state = FSM_STATE.WAIT_FOR_CMD;
+          let total_pkg = device_info.getReceivedPackageCnt();
+          progress_bar.update(total_pkg);
+          emitdatatoSocket(device_info.getDeviceInfoData());
+    
+    });
+    
+   
+   
+  }
+  else if (device_info.getTotalPackages() == 0) {
+     dbg.logAndPrint("No packages are left for this file start cmd");
+      finish_comms = true;
+    }
+  else {
+    
+    dbg.logAndPrint("cmd start new else ");
+          // dbg.logAndPrint(
+          //   "Total packages incoming for this file: " +
+          //     device_info.getTotalPackages()
+          // );
+          const query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
+          connection.write(query);
+         // dbg.log("[TX]: [" + query.toString("hex") + "]");
+          current_state = FSM_STATE.WAIT_FOR_CMD;
+          let total_pkg = device_info.getTotalPackages();
+          progress_bar.start(total_pkg, 0);
+          emitdatatoSocket(device_info.getDeviceInfoData());
+  }
+         } catch (error) {
+          console.log("error", error)
+         }
+
+
+
       break;
     }
     case CMD_ID.SYNC: { console.log("sync")
       dbg.logAndPrint("cmd sync");
       device_info.sync_received = true;
-      device_info.setLastCRC(0);
+      //device_info.setLastCRC(0);
            let sync_packet = data_buffer.readUInt32BE(4);
+           dbg.logAndPrint("sync_packet " + sync_packet);
           //  let a = device_info.getLastCRC()
           //  if(a == 0){
           //   dbg.logAndPrint("cmd sync 000");
@@ -806,10 +873,21 @@ console.log("timestamo", timestamp)
         device_info.first_sync_received = true;
         device_info.sync_offset_correction = sync_packet;
       }
+      try {
+        const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
+        if(!fs.existsSync(filePath2)){
+          dbg.logAndPrint("file doesnot existsSync");
+          device_info.setReceivedPackageCnt(
+            sync_packet - device_info.sync_offset_correction
+          );
+        }
+      } catch (error) {
+        console.log("Ds",error );
+      }
 
-      device_info.setReceivedPackageCnt(
+      /* device_info.setReceivedPackageCnt(
         sync_packet - device_info.sync_offset_correction
-      );
+      ); */
       device_info.repeat_count = 0;
      // dbg.log("Sync has been received! (" + sync_packet.toString() + ")");
       current_state = FSM_STATE.WAIT_FOR_CMD;
@@ -873,101 +951,8 @@ console.log("timestamo", timestamp)
           //     break;
           //   }
         }
-        /* 
-        
-      // if (device_info.getTotalPackages() == 0) {
-      //  dbg.logAndPrint("No packages are left for this file start cmd");
-      //   finish_comms = true;
-      // } else {
-      //   dbg.logAndPrint("cmd start else total packages incoming for this file");
-      //   // dbg.logAndPrint(
-      //   //   "Total packages incoming for this file: " +
-      //   //     device_info.getTotalPackages()
-      //   // );
-      //   const query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
-      //   connection.write(query);
-      //  // dbg.log("[TX]: [" + query.toString("hex") + "]");
-      //   current_state = FSM_STATE.WAIT_FOR_CMD;
-      //   let total_pkg = device_info.getTotalPackages();
-      //   progress_bar.start(total_pkg, 0);
-      //   emitdatatoSocket(device_info.getDeviceInfoData());
-      // }
-      try {
-        const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
-if(fs.existsSync(filePath2)){
-let packagescnt ;
-  let crcvalue;
-  const filePath = 'ii.txt';
-
-  fs.readFile(filePath2, 'utf8', (err, data) => {
-    if (err) {
-      console.error('Error reading the file:', err);
-      return;
-    }
-
-    // Regular expressions to extract values
-    const receivedPackagesRegex = /ReceivedPackages:\s*(\d+)/;
-    const lastcrcRegex = /lastcrc:\s*(\d+)/;
-
-    // Find matches
-    const receivedPackagesMatch = data.match(receivedPackagesRegex);
-    const lastcrcMatch = data.match(lastcrcRegex);
-
-    // Extract values
-    const receivedPackages = receivedPackagesMatch ? receivedPackagesMatch[1] : 'Not found';
-    const lastcrc = lastcrcMatch ? lastcrcMatch[1] : 'Not found';
-    packagescnt = receivedPackages
-    crcvalue =lastcrc
-  console.log("read ", packagescnt)
-  device_info.setLastCRC(crcvalue);
-  device_info.setReceivedPackageCnt(packagescnt);
-  
-  let offset = device_info.getReceivedPackageCnt();
-  let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
-  if (
-    device_info.getCameraType() == CAMERA_TYPE.DUALCAM &&
-    device_info.getProtocolVersion() <= 5
-  ) {
-    offset = offset + 1;
-  }
-  query.writeUInt32BE(offset, 4);
-        connection.write(query);
-       // dbg.log("[TX]: [" + query.toString("hex") + "]");
-        current_state = FSM_STATE.WAIT_FOR_CMD;
-        let total_pkg = device_info.getReceivedPackageCnt();
-        progress_bar.update(total_pkg);
-        emitdatatoSocket(device_info.getDeviceInfoData());
-  
-  });
-  
- 
- 
-}
-else if (device_info.getTotalPackages() == 0) {
-   dbg.logAndPrint("No packages are left for this file start cmd");
-    finish_comms = true;
-  }
-else {
-  
-  dbg.logAndPrint("cmd start new else ");
-        // dbg.logAndPrint(
-        //   "Total packages incoming for this file: " +
-        //     device_info.getTotalPackages()
-        // );
-        const query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
-        connection.write(query);
-       // dbg.log("[TX]: [" + query.toString("hex") + "]");
-        current_state = FSM_STATE.WAIT_FOR_CMD;
-        let total_pkg = device_info.getTotalPackages();
-        progress_bar.start(total_pkg, 0);
-        emitdatatoSocket(device_info.getDeviceInfoData());
-        current_state = CMD_ID.DATA
-}
-       } catch (error) {
-        console.log("error", error)
-       }
-        
-        */
+      
+       
         // dbg.log(
         //   "Package: " +
         //     device_info.getReceivedPackageCnt() +
