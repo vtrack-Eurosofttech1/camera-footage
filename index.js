@@ -129,7 +129,7 @@ function handleConnection(connection) {
   let lastActivityTime = Date.now(); // Track the last activity time
   dbg.logAndPrint("Client connected: " + remoteAddress);
 
-  const INACTIVITY_TIMEOUT = 15000; // 15 seconds
+  const INACTIVITY_TIMEOUT = 30000; // 15 seconds
 
   // Timer to check inactivity
   const inactivityTimer = setInterval(() => {
