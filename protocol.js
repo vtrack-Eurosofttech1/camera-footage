@@ -760,6 +760,7 @@ console.log("timestamo", timestamp)
       switch (device_info.getCameraType()) {
         case CAMERA_TYPE.DUALCAM: {
           device_info.setTotalPackages(data_buffer.readUInt32BE(4));
+          console.log("sdata_bufferE(4)",data_buffer.readUInt32BE(4))
           break;
         }
         
@@ -787,6 +788,7 @@ console.log("timestamo", timestamp)
   if(fs.existsSync(filePath2)){
   let packagescnt ;
     let crcvalue;
+    let ttlpkg;
     const filePath = 'ii.txt';
   
     fs.readFile(filePath2, 'utf8', (err, data) => {
@@ -797,32 +799,42 @@ console.log("timestamo", timestamp)
   
       // Regular expressions to extract values
       const receivedPackagesRegex = /ReceivedPackages:\s*(\d+)/;
+      const totalPackagesRegex = /total packages:\s*(\d+)/; 
       const lastcrcRegex = /lastcrc:\s*(\d+)/;
   
       // Find matches
       const receivedPackagesMatch = data.match(receivedPackagesRegex);
       const lastcrcMatch = data.match(lastcrcRegex);
-  
+      const totalPackagesRegexMatch = data.match(totalPackagesRegex);
       // Extract values
       const receivedPackages = receivedPackagesMatch ? receivedPackagesMatch[1] : 'Not found';
       const lastcrc = lastcrcMatch ? lastcrcMatch[1] : 'Not found';
+      const totalPackage =  totalPackagesRegexMatch ? totalPackagesRegexMatch[1] : 'Not found';
       packagescnt = receivedPackages
       crcvalue =lastcrc
+      ttlpkg = totalPackage
     console.log("read ", packagescnt)
     device_info.setLastCRC(crcvalue);
     device_info.setReceivedPackageCnt(packagescnt);
+    device_info.setTotalPackages((ttlpkg - packagescnt) )
     
-    let offset = device_info.getReceivedPackageCnt();
+    let offset = packagescnt;
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
   
-      offset = offset + 1;
-    
+     // offset = offset;
+    // let offsetNum = parseInt(offset, 10)
+    // offsetNum -=1
+    // offset = offsetNum.toString()
+
     query.writeUInt32BE(offset, 4);
+    console.log("??",   query.writeUInt32BE(offset, 4), offset)
           connection.write(query);
          // dbg.log("[TX]: [" + query.toString("hex") + "]");
           current_state = FSM_STATE.WAIT_FOR_CMD;
-          let total_pkg = device_info.getReceivedPackageCnt();
-          progress_bar.update(total_pkg);
+          let total_pkg = device_info.getTotalPackages()
+          let recive_pkg = device_info.getReceivedPackageCnt();
+          progress_bar.start(total_pkg, 0)
+          progress_bar.update(recive_pkg);
           emitdatatoSocket(device_info.getDeviceInfoData());
     
     });
@@ -860,36 +872,48 @@ console.log("timestamo", timestamp)
     case CMD_ID.SYNC: { console.log("sync")
       dbg.logAndPrint("cmd sync");
       device_info.sync_received = true;
-      //device_info.setLastCRC(0);
+      device_info.setLastCRC(0);
            let sync_packet = data_buffer.readUInt32BE(4);
-           dbg.logAndPrint("sync_packet " + sync_packet);
-          //  let a = device_info.getLastCRC()
-          //  if(a == 0){
-          //   dbg.logAndPrint("cmd sync 000");
-          //   device_info.setLastCRC(0)
-          //  }
+           let indexOfSync = data_buffer.toString("hex").indexOf("00030004");
+           console.log("indexOfSync",indexOfSync, data_buffer,sync_packet.toString() )
+           let sync_packet_str = sync_packet.toString() 
+           if(sync_packet_str.endsWith('1')){
+            sync_packet_str  = sync_packet_str.slice(0, -1)
+           }
+          
+           dbg.logAndPrint("sync_packet " + sync_packet,sync_packet_str);
       if (device_info.first_sync_received == false) {
         dbg.logAndPrint("cmd sync if");
         device_info.first_sync_received = true;
         device_info.sync_offset_correction = sync_packet;
       }
-      try {
-        const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
-        if(!fs.existsSync(filePath2)){
-          dbg.logAndPrint("file doesnot existsSync");
-          device_info.setReceivedPackageCnt(
-            sync_packet - device_info.sync_offset_correction
-          );
-        }
-      } catch (error) {
-        console.log("Ds",error );
-      }
+      // try {
+      //   const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
+      //   if(!fs.existsSync(filePath2)){
+      //     dbg.logAndPrint("file doesnot existsSync");
+      //    // device_info.setLastCRC(0)
+      //     device_info.setReceivedPackageCnt(
+      //       sync_packet - device_info.sync_offset_correction
+      //     );
+      //    // device_info.repeat_count = 0;
+      //   }
+      //   else {
+      //     device_info.setReceivedPackageCnt(
+      //       sync_packet 
+      //     );
+      //    // device_info.repeat_count++
+      //   }
+      //   device_info.repeat_count = 0
+      //   device_info.setLastCRC(0)
+      // } catch (error) {
+      //   console.log("Ds",error );
+      // }
 
-      /* device_info.setReceivedPackageCnt(
+       device_info.setReceivedPackageCnt(
         sync_packet - device_info.sync_offset_correction
-      ); */
+      ); 
       device_info.repeat_count = 0;
-     // dbg.log("Sync has been received! (" + sync_packet.toString() + ")");
+      dbg.logAndPrint("Sync has been received! (" + sync_packet.toString() + ") " + device_info.getLastCRC() + "as" +device_info.getReceivedPackageCnt());
       current_state = FSM_STATE.WAIT_FOR_CMD;
       break;
     }
@@ -906,6 +930,9 @@ console.log("timestamo", timestamp)
       let data_len = data_buffer.readUInt16BE(2) - 2;
       /* Get raw file data */
       let raw_file = data_buffer.slice(4, 4 + data_len);
+      //dbg.logAndPrint("raw_file" + Buffer.from(data_buffer, 'utf-8'))
+    //  console.log("ads", raw_file)
+    console.log("getLastCRC", device_info.getLastCRC())
       /* Calculate CRC + add sum of last packet */
       let computed_crc = crc16_generic(
         device_info.getLastCRC(),
@@ -915,7 +942,7 @@ console.log("timestamo", timestamp)
       /* Read actual CRC in packet */
       let actual_crc = data_buffer.readUInt16BE(4 + data_len);
       /* Calculate CRC and display with actual */
-
+console.log("actual",actual_crc, "computed", computed_crc)
     //  dbg.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
 
       if (computed_crc != actual_crc) {
@@ -927,11 +954,12 @@ console.log("timestamo", timestamp)
         dbg.logAndPrint("cmd data else crc ")
         switch (device_info.getCameraType()) {
           case CAMERA_TYPE.DUALCAM: {
+            console.log("dual")
             device_info.addToBuffer(
               raw_file,
               device_info.getReceivedPackageCnt() * 1024
             );
-            device_info.incrementReceivedPackageCnt(1);
+           device_info.incrementReceivedPackageCnt(1);
             break;
           }
           //   case CAMERA_TYPE.ADAS: {
@@ -962,7 +990,8 @@ console.log("timestamo", timestamp)
         // );
         // device_info.addToBuffer(raw_file);
         let rx_pkg_cnt = device_info.getReceivedPackageCnt();
-        console.log(rx_pkg_cnt)
+        let ttl_cnt = device_info.getTotalPackages();
+        console.log("ds",rx_pkg_cnt, ttl_cnt)
         progress_bar.update(rx_pkg_cnt);
         dbg.logAndPrint("cmd data rx_pkg_cnt" + rx_pkg_cnt)
         console.log(rx_pkg_cnt,
@@ -989,6 +1018,20 @@ console.log("timestamo", timestamp)
             console.error("Error writing file:", err);
           } else {
             console.log("The buffer has been saved at:", filePath);
+          }
+        });
+        let data1 = Buffer.from(device_info.getFileBuffer(), 'utf-8')
+        const newfilePath = path.join(
+          __dirname,
+          device_info.getDeviceDirectory(),
+          /* device_info.getCurrentFilename() */ `${timestamp}Output` +
+            ".txt"
+        );        
+        fs.writeFile(newfilePath, data1, (err) => {
+          if (err) {
+            console.error("Error writing file:", err);
+          } else {
+            console.log("The  text buffer has been saved at:", filePath);
           }
         });
         const totalPackages = device_info.getTotalPackages();
@@ -1340,6 +1383,8 @@ fs.writeFile(filePath2, content, (err) => {
       if (file_available == true) {
         console.log("file_available")
        dbg.logAndPrint("Got DualCam file path.");
+       device_info.clearBuffer();
+               device_info.setLastCRC(0);
 //        try {
 //         const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
 // if(fs.existsSync(filePath2)){
@@ -1525,7 +1570,10 @@ fs.writeFile(filePath2, content, (err) => {
       device_info.getCameraType() == CAMERA_TYPE.DUALCAM &&
       device_info.getProtocolVersion() <= 5
     ) {
-      offset = offset + 1;
+     // offset = offset ;
+     let offsetNum = parseInt(offset, 10)
+     offsetNum -=1
+     offset = offsetNum.toString()
     }
     query.writeUInt32BE(offset, 4);
     // dbg.logAndPrint(

@@ -277,11 +277,13 @@ function handleConnection(connection) {
 const endIndex = metadata.timestamp.indexOf(')');
     let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
     // getUnixTimestamp(metadata.timestamp);
+    timestamp = NaN
     console.log("timestamp", timestamp)
     const IMEI = device_info.getDeviceDirectory(); // IMEI number
     const filename = `${timestamp}` + ".mp4"; // filename
     var frameratevideo = metadata.framerate
     // Construct the path to the file
+   
     const filePath = path.join(__dirname, IMEI, filename);
     if (
       device_info.getUploadedToS3() == false &&
