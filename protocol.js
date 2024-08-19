@@ -1528,27 +1528,30 @@ const file2Path = path.join(
     /* device_info.getCurrentFilename() */ `${timestamp}new` +
       device_info.getExtension()
   );
-
-// Create a readable stream for the second file
-const readStream = fs.createReadStream(file2Path);
-
-// Create a writable stream for the first file in append mode
-const writeStream = fs.createWriteStream(file1Path, { flags: 'a' });
-
-// Append the contents of the second file to the first file
-readStream.pipe(writeStream);
-
-readStream.on('end', () => {
-  console.log('File appended successfully!');
-});
-
-readStream.on('error', (err) => {
-  console.error('Error reading file:', err);
-});
-
-writeStream.on('error', (err) => {
-  console.error('Error writing file:', err);
-});
+// Function to append file data
+async function appendFileContent() {
+    try {
+      // Read the content of the second file
+      const file2Content = await fs.readFile(file2Path);
+  
+      // Open the first file in append mode
+      const file1Handle = await fs.open(file1Path, 'a');
+  
+      // Write the content of the second file to the first file
+      await file1Handle.appendFile(file2Content);
+  
+      // Close the file handle
+      await file1Handle.close();
+  
+      console.log('File appended successfully!');
+    } catch (err) {
+      console.error('Error during file operations:', err.message);
+      // Optionally, handle cleanup or rollback actions here
+    }
+  }
+  
+  // Execute the function
+  appendFileContent();
     /* fs.appendFile(
       "./" +
         device_info.getDeviceDirectory() +
