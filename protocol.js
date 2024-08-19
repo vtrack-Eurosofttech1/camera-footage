@@ -816,15 +816,15 @@ console.log("timestamo", timestamp)
     console.log("read ", packagescnt)
     device_info.setLastCRC(crcvalue);
     device_info.setReceivedPackageCnt(packagescnt);
-    device_info.setTotalPackages((ttlpkg - packagescnt) )
+   // device_info.setTotalPackages((ttlpkg - packagescnt) )
     
     let offset = packagescnt;
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
   
      // offset = offset;
-    // let offsetNum = parseInt(offset, 10)
-    // offsetNum -=1
-    // offset = offsetNum.toString()
+    let offsetNum = parseInt(offset, 10)
+    offsetNum +=1
+    offset = offsetNum.toString()
 
     query.writeUInt32BE(offset, 4);
     console.log("??",   query.writeUInt32BE(offset, 4), offset)
