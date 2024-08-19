@@ -5,9 +5,10 @@ const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 const protocol = require("./protocol.js");
 
 
-let device_info = new protocol.DeviceDescriptor();
+
 
 async function processVideoFile(device_info_directory, timestamp, frameratevideo, extension,getFileToDL) {
+    let device_info = new protocol.DeviceDescriptor();
     const IMEI = device_info_directory;
     const fileName = `${timestamp}.mp4`;
     const filePath = path.join(__dirname, IMEI, fileName);
@@ -54,6 +55,7 @@ async function processVideoFile(device_info_directory, timestamp, frameratevideo
 
   
   async function processImageFile(timestamp) {
+    let device_info = new protocol.DeviceDescriptor();
     const IMEI = device_info.getDeviceDirectory();
     const fileName = `${timestamp}.jpeg`;
     const filePath = path.join(__dirname, IMEI, fileName);
