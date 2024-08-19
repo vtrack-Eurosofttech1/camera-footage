@@ -1541,6 +1541,12 @@ readStream.pipe(writeStream);
 
 readStream.on('end', () => {
   console.log('File appended successfully!');
+  if (device_info.getExtension() == ".h265") {
+    processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+    }
+    else {
+        processImageFile(`${timestamp}`,device_info)
+    }
 });
 
 readStream.on('error', (err) => {
@@ -1697,12 +1703,12 @@ writeStream.on('error', (err) => {
   }
   if (current_state == FSM_STATE.LOOK_FOR_FILES) {
     dbg.logAndPrint("FSM_STATE.LOOK_FOR_FILES");
-    if (device_info.getExtension() == ".h265") {
-    processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() )
-    }
-    else {
-        processImageFile(`${timestamp}`)
-    }
+    // if (device_info.getExtension() == ".h265") {
+    // processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() )
+    // }
+    // else {
+    //     processImageFile(`${timestamp}`)
+    // }
    /*  var fileName;
     var dateValue = new Date();
     var fileType = 1;

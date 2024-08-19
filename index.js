@@ -285,6 +285,9 @@ const endIndex = metadata.timestamp.indexOf(')');
     // Construct the path to the file
    
     const filePath = path.join(__dirname, IMEI, filename);
+    console.log("cloze",  device_info.getUploadedToS3() == false,
+    !isNaN(timestamp) ,
+    !fs.existsSync(filePath))
     if (
       device_info.getUploadedToS3() == false &&
       !isNaN(timestamp) &&
