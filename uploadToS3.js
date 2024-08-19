@@ -156,7 +156,7 @@ const url =
 exports.uploadToS3 =(params,payload)=>{
   return new Promise((resolve, reject) => {
     let {fileName,fileType,deviceIMEI,cameraType}=payload
-   
+   console.log("111111111111111");
     try{
         s3.upload(params, function (s3Err, fileContent) {
             if (s3Err) {

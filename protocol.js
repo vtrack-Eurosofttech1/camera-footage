@@ -816,7 +816,8 @@ console.log("timestamo", timestamp)
     console.log("read ", packagescnt)
     device_info.setLastCRC(crcvalue);
     device_info.setReceivedPackageCnt(packagescnt);
-   // device_info.setTotalPackages((ttlpkg - packagescnt) )
+    device_info.setTotalPackages((ttlpkg - packagescnt) )
+    device_info.clearBuffer();
     
     let offset = packagescnt;
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
@@ -1027,7 +1028,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
                   device_info.getExtension()
               );
               console.log("exist file");
-              if(!fs.existsSync(filePathdupilcate)){
+              if(fs.existsSync(filePathdupilcate)){
                 fs.writeFile(filePathdupilcate, buffer, (err) => {
                     if (err) {
                       console.error("Error writing file:", err);
@@ -1515,8 +1516,18 @@ console.log("actual",actual_crc, "computed", computed_crc)
       temp_file_buff,
       device_info.getFileBuffer()
     ]);
-    const file1Path = 'filetimestamp.jpeg';
-const file2Path = 'filetimestampnew.jpeg';
+    const file1Path = path.join(
+        __dirname,
+        device_info.getDeviceDirectory(),
+        /* device_info.getCurrentFilename() */ `${timestamp}` +
+          device_info.getExtension()
+      );
+const file2Path = path.join(
+    __dirname,
+    device_info.getDeviceDirectory(),
+    /* device_info.getCurrentFilename() */ `${timestamp}new` +
+      device_info.getExtension()
+  );
 
 // Create a readable stream for the second file
 const readStream = fs.createReadStream(file2Path);
@@ -1637,7 +1648,7 @@ writeStream.on('error', (err) => {
     ) {
      // offset = offset ;
      let offsetNum = parseInt(offset, 10)
-     offsetNum -=1
+     offsetNum +=1
      offset = offsetNum.toString()
     }
     query.writeUInt32BE(offset, 4);
@@ -1754,6 +1765,23 @@ console.log("asdfcsd", cameraType)
         console.error("Error converting or uploading:", error);
       });
     } else {
+        const IMEI = device_info.getDeviceDirectory(); // IMEI number
+        const filename = `${timestamp}` + ".jpeg"; // filename
+
+        // Construct the path to the file
+        const filePath = path.join(__dirname, IMEI, filename);
+        let fileContent;
+fs.readFile(filePath, (err, data) => {
+    if (err) {
+      console.error('Error reading file:', err.message);
+    } else {
+      fileContent = data;
+      params.Body = fileContent;
+      console.log('File content read successfully');
+      // You can now process the fileContent as needed
+    }
+  });
+       
       let deviceInfo = device_info.getDeviceDirectory();
       let directory = deviceInfo.split("/").pop();
       let cameraType =  device_info.getFileToDL()
