@@ -836,6 +836,20 @@ console.log("timestamo", timestamp)
           progress_bar.start(total_pkg, 0)
           progress_bar.update(recive_pkg);
           emitdatatoSocket(device_info.getDeviceInfoData());
+          const filePath = path.join(
+            __dirname,
+            device_info.getDeviceDirectory(),
+            /* device_info.getCurrentFilename() */ `${timestamp}new` +
+              device_info.getExtension()
+          );
+          const emptyContent = ''; // Empty string
+          fs.writeFile(filePath, emptyContent, (err) => {
+            if (err) {
+              console.error("Error writing file:", err);
+            } else {
+              console.log("The buffer2 has been saved at:", filePath);
+            }
+          });
     
     });
     
@@ -1005,47 +1019,75 @@ console.log("actual",actual_crc, "computed", computed_crc)
         // Save for calculating next packet's CRC
         device_info.setLastCRC(actual_crc);
         let buffer = Buffer.from(device_info.getFileBuffer(), "base64");
+        try {
+            const filePathdupilcate = path.join(
+                __dirname,
+                device_info.getDeviceDirectory(),
+                /* device_info.getCurrentFilename() */ `${timestamp}new` +
+                  device_info.getExtension()
+              );
+              console.log("exist file");
+              if(!fs.existsSync(filePathdupilcate)){
+                fs.writeFile(filePathdupilcate, buffer, (err) => {
+                    if (err) {
+                      console.error("Error writing file:", err);
+                    } else {
+                      console.log("The buffer2 has been saved at:", filePathdupilcate);
+                    }
+                  });
 
-        const filePath = path.join(
-          __dirname,
-          device_info.getDeviceDirectory(),
-          /* device_info.getCurrentFilename() */ `${timestamp}` +
-            device_info.getExtension()
-        );
+              }
+              else {
+                const filePath = path.join(
+                    __dirname,
+                    device_info.getDeviceDirectory(),
+                    /* device_info.getCurrentFilename() */ `${timestamp}` +
+                      device_info.getExtension()
+                  );
+          
+                  fs.writeFile(filePath, buffer, (err) => {
+                    if (err) {
+                      console.error("Error writing file:", err);
+                    } else {
+                      console.log("The buffer has been saved at:", filePath);
+                    }
+                  });
+                
+                 
+              }
+              let data1 = Buffer.from(device_info.getFileBuffer(), 'base64')
+              const newfilePath = path.join(
+                __dirname,
+                device_info.getDeviceDirectory(),
+                /* device_info.getCurrentFilename() */ `${timestamp}Output` +
+                  ".txt"
+              );        
+              fs.writeFile(newfilePath, data1, (err) => {
+                if (err) {
+                  console.error("Error writing file:", err);
+                } else {
+                  console.log("The  text buffer has been saved at:", newfilePath);
+                }
+              });
 
-        fs.writeFile(filePath, buffer, (err) => {
-          if (err) {
-            console.error("Error writing file:", err);
-          } else {
-            console.log("The buffer has been saved at:", filePath);
-          }
-        });
-        let data1 = Buffer.from(device_info.getFileBuffer(), 'utf-8')
-        const newfilePath = path.join(
-          __dirname,
-          device_info.getDeviceDirectory(),
-          /* device_info.getCurrentFilename() */ `${timestamp}Output` +
-            ".txt"
-        );        
-        fs.writeFile(newfilePath, data1, (err) => {
-          if (err) {
-            console.error("Error writing file:", err);
-          } else {
-            console.log("The  text buffer has been saved at:", filePath);
-          }
-        });
-        const totalPackages = device_info.getTotalPackages();
-const receivedPackages = device_info.getReceivedPackageCnt();
-console.log("Dsvsdv",totalPackages,receivedPackages )
-const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}`;
-const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
-fs.writeFile(filePath2, content, (err) => {
-    if (err) {
-        console.error("Error writing file:", err);
-    } else {
-        console.log("The file has been saved at:", filePath);
-    }
-});
+              const totalPackages = device_info.getTotalPackages();
+          const receivedPackages = device_info.getReceivedPackageCnt();
+          console.log("Dsvsdv",totalPackages,receivedPackages )
+          const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}`;
+          const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
+          fs.writeFile(filePath2, content, (err) => {
+              if (err) {
+                  console.error("Error writing file:", err);
+              } else {
+                  console.log("The file has been saved at:", filePath2);
+              }
+          });
+
+        } catch (error) {
+            console.log("errr", error);
+        }
+ 
+        
 
       }
 
@@ -1473,7 +1515,30 @@ fs.writeFile(filePath2, content, (err) => {
       temp_file_buff,
       device_info.getFileBuffer()
     ]);
-    fs.appendFile(
+    const file1Path = 'filetimestamp.jpeg';
+const file2Path = 'filetimestampnew.jpeg';
+
+// Create a readable stream for the second file
+const readStream = fs.createReadStream(file2Path);
+
+// Create a writable stream for the first file in append mode
+const writeStream = fs.createWriteStream(file1Path, { flags: 'a' });
+
+// Append the contents of the second file to the first file
+readStream.pipe(writeStream);
+
+readStream.on('end', () => {
+  console.log('File appended successfully!');
+});
+
+readStream.on('error', (err) => {
+  console.error('Error reading file:', err);
+});
+
+writeStream.on('error', (err) => {
+  console.error('Error writing file:', err);
+});
+    /* fs.appendFile(
       "./" +
         device_info.getDeviceDirectory() +
         "/" +
@@ -1489,7 +1554,7 @@ fs.writeFile(filePath2, content, (err) => {
         //     " successfully"
         // );
       }
-    );
+    ); */
 
     /*   if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
             if (device_info.getFileToDL().search("video") > -1) {
