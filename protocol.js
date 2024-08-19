@@ -6,6 +6,7 @@ const path = require("path");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 const DeviceModel = require("./model/device.model");
 const emitdatatoSocket = require("./socket.js");
+const { processVideoFile, processImageFile } = require("./setparamsofS3.js");
 // setInterval(()=>{
 
 //   emitdatatoSocket({clientId:"64f9c5c3b7f9957d81e36908",test:"abc"})
@@ -1698,7 +1699,13 @@ async function appendFileContent() {
   }
   if (current_state == FSM_STATE.LOOK_FOR_FILES) {
     dbg.logAndPrint("FSM_STATE.LOOK_FOR_FILES");
-    var fileName;
+    if (device_info.getExtension() == ".h265") {
+    processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() )
+    }
+    else {
+        processImageFile(`${timestamp}`)
+    }
+   /*  var fileName;
     var dateValue = new Date();
     var fileType = 1;
     if (device_info.getExtension() == ".h265") {
@@ -1790,7 +1797,12 @@ fs.readFile(filePath, (err, data) => {
       let cameraType =  device_info.getFileToDL()
       uploadToS3(params, { fileType, fileName, deviceIMEI: directory,cameraType });
       device_info.setUploadedToS3(true);
-    }
+    } */
+
+
+
+
+
 //
    // dbg.logAndPrint("Looking for more files...");
     const query = Buffer.from([0, 9]);
