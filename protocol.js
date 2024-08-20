@@ -751,6 +751,7 @@ exports.run_fsm = async function (
  const startIndex = metadata.timestamp.indexOf('(') + 1;
 const endIndex = metadata.timestamp.indexOf(')');
 const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
+let pkgscount = 0 ;
 
 device_info.setnewtimestamp(timestamp)
 console.log("timestamo", timestamp)
@@ -791,7 +792,6 @@ console.log("timestamo", timestamp)
   let packagescnt ;
     let crcvalue;
     let ttlpkg;
-    const filePath = 'ii.txt';
   
     fs.readFile(filePath2, 'utf8', (err, data) => {
       if (err) {
@@ -803,25 +803,30 @@ console.log("timestamo", timestamp)
       const receivedPackagesRegex = /ReceivedPackages:\s*(\d+)/;
       const totalPackagesRegex = /total packages:\s*(\d+)/; 
       const lastcrcRegex = /lastcrc:\s*(\d+)/;
+      const totalreceivedPackagesRegex = /lastreceivedPackages:\s*(\d+)/; 
   
       // Find matches
       const receivedPackagesMatch = data.match(receivedPackagesRegex);
       const lastcrcMatch = data.match(lastcrcRegex);
       const totalPackagesRegexMatch = data.match(totalPackagesRegex);
+      const totalreceivedPackagesRegexMatch = data.match(totalreceivedPackagesRegex);
       // Extract values
       const receivedPackages = receivedPackagesMatch ? receivedPackagesMatch[1] : 'Not found';
       const lastcrc = lastcrcMatch ? lastcrcMatch[1] : 'Not found';
       const totalPackage =  totalPackagesRegexMatch ? totalPackagesRegexMatch[1] : 'Not found';
+      const totallastreceivedPackages = totalreceivedPackagesRegexMatch ? totalreceivedPackagesRegexMatch[1] : 'Not found';
       packagescnt = receivedPackages
+      pkgscount = totallastreceivedPackages
       crcvalue =lastcrc
       ttlpkg = totalPackage
+
     console.log("read ", packagescnt)
     device_info.setLastCRC(crcvalue);
     device_info.setReceivedPackageCnt(packagescnt);
     device_info.setTotalPackages((ttlpkg - packagescnt) )
     device_info.clearBuffer();
     
-    let offset = packagescnt;
+    let offset = pkgscount;
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
   
      // offset = offset;
@@ -846,13 +851,25 @@ console.log("timestamo", timestamp)
               device_info.getExtension()
           );
           const emptyContent = ''; // Empty string
-          fs.writeFile(filePath, emptyContent, (err) => {
-            if (err) {
-              console.error("Error writing file:", err);
-            } else {
-              console.log("The buffer2 has been saved at:", filePath);
-            }
-          });
+          if(fs.existsSync(filePath)){
+            fs.appendFile(filePath, emptyContent, (err) => {
+                if (err) {
+                  console.error("Error writing file:", err);
+                } else {
+                  console.log("The buffer2 has been saved at:", filePath);
+                }
+              });
+          }
+else{
+    fs.writeFile(filePath, emptyContent, (err) => {
+        if (err) {
+          console.error("Error writing file:", err);
+        } else {
+          console.log("The buffer2 has been saved at:", filePath);
+        }
+      });
+}
+         
     
     });
     
@@ -1058,11 +1075,11 @@ console.log("actual",actual_crc, "computed", computed_crc)
                 
                  
               }
-              let data1 = Buffer.from(device_info.getFileBuffer(), 'base64')
+              /* let data1 = Buffer.from(device_info.getFileBuffer(), 'base64')
               const newfilePath = path.join(
                 __dirname,
                 device_info.getDeviceDirectory(),
-                /* device_info.getCurrentFilename() */ `${timestamp}Output` +
+              `${timestamp}Output` +
                   ".txt"
               );        
               fs.writeFile(newfilePath, data1, (err) => {
@@ -1071,12 +1088,22 @@ console.log("actual",actual_crc, "computed", computed_crc)
                 } else {
                   console.log("The  text buffer has been saved at:", newfilePath);
                 }
-              });
+              }); */
 
               const totalPackages = device_info.getTotalPackages();
-          const receivedPackages = device_info.getReceivedPackageCnt();
+        //   totalPackages += 1;
+
+        let receivedPackages = device_info.getReceivedPackageCnt();
+         // let lastreceivedPackages = device_info.getReceivedPackageCnt();
+          if(pkgscount > receivedPackages){
+            pkgscount +=1
+          }
+          else {
+            pkgscount = device_info.getReceivedPackageCnt();
+          
+          }
           console.log("Dsvsdv",totalPackages,receivedPackages )
-          const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}`;
+          const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}\nlastreceivedPackages: ${pkgscount}`;
           const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
           fs.writeFile(filePath2, content, (err) => {
               if (err) {

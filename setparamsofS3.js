@@ -20,20 +20,20 @@ async function processVideoFile(device_info_directory, timestamp, frameratevideo
         timestamp,
          extension
         ).then(async(d)=>{
-
+console.log("convert", d);
     
     try {
-  fs.readFileSync(filePath,async(err,d)=>{
+  fs.readFile(filePath,async(err,data)=>{
 
     let directory = IMEI.split("/").pop();
     let params = {
         Bucket: "vtracksolutions/media", // pass your bucket name
         Key: directory + "/" + `${timestamp}` + ".mp4",
-        Body: d,
+        Body: data,
         ContentType: "video/mp4"
       };
   
-        console.log("Video conversion successful");
+        console.log("Video conversion successful",params);
     
         await uploadToS3(params, {
           fileType: 2,
