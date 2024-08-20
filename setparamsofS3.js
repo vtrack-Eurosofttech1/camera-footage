@@ -86,6 +86,8 @@ async function processVideoFile(device_info_directory, timestamp, frameratevideo
           fileType: 1,
           fileName: fileName,
           deviceIMEI: IMEI.split("/").pop(),
+          filePath: filePath,
+
           cameraType: device_info.getFileToDL()
         });
     

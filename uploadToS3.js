@@ -155,7 +155,7 @@ const url =
 
 exports.uploadToS3 =(params,payload)=>{
   return new Promise((resolve, reject) => {
-    let {fileName,fileType,deviceIMEI,cameraType}=payload
+    let {fileName,fileType,deviceIMEI,cameraType,filePath}=payload
    console.log("111111111111111",fileName,fileType,deviceIMEI,cameraType);
     try{
         s3.upload(params, function (s3Err, fileContent) {
@@ -239,6 +239,9 @@ exports.uploadToS3 =(params,payload)=>{
                                         { upsert: true },
                                         function (err, res) {
                                           if (err) {}
+                                          fs.unlink(filePath,(err)=>{
+                                            console.log(err)
+                                          })
                                           console.log("1 document inserted");
                                           resolve("Upload completed successfully");
                                           // db.close();
