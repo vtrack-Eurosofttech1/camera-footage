@@ -239,9 +239,9 @@ exports.uploadToS3 =(params,payload)=>{
                                         { upsert: true },
                                         function (err, res) {
                                           if (err) {}
-                                          fs.unlink(filePath,(err)=>{
-                                            console.log(err)
-                                          })
+                                          // fs.unlink(filePath,(err)=>{
+                                          //   console.log(err)
+                                          // })
                                           console.log("1 document inserted");
                                           resolve("Upload completed successfully");
                                           // db.close();

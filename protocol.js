@@ -1557,6 +1557,7 @@ const file2Path = path.join(
     /* device_info.getCurrentFilename() */ `${timestamp}new` +
       device_info.getExtension()
   );
+  if(fs.existsSync(file1Path) && fs.existsSync(file2Path)){ 
 // Create a readable stream for the second file
 const readStream = fs.createReadStream(file2Path);
 
@@ -1583,7 +1584,15 @@ readStream.on('error', (err) => {
 writeStream.on('error', (err) => {
   console.error('Error writing file:', err);
 });
- 
+}
+else {
+  if (device_info.getExtension() == ".h265") {
+    processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+    }
+    else {
+        processImageFile(`${timestamp}`,device_info)
+    }
+}
     /* fs.appendFile(
       "./" +
         device_info.getDeviceDirectory() +
@@ -1675,7 +1684,29 @@ writeStream.on('error', (err) => {
   if (current_state == FSM_STATE.REPEAT_PACKET) {
     dbg.logAndPrint("FSM_STATE.REPEAT_PACKET");
     device_info.sync_received = false;
-    let offset = device_info.getReceivedPackageCnt();
+    let filePath2 
+    try {
+      filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
+    } catch (error) {
+      console.log(error)
+    }
+   
+    if(fs.existsSync(filePath2)){
+    let packagescnt ;
+    
+    
+      fs.readFile(filePath2, 'utf8', (err, data) => {
+        if (err) {
+          console.error('Error reading the file:', err);
+          return;
+        }
+        const totalreceivedPackagesRegex = /lastreceivedPackages:\s*(\d+)/; 
+    
+        const totalreceivedPackagesRegexMatch = data.match(totalreceivedPackagesRegex);
+        const totallastreceivedPackages = totalreceivedPackagesRegexMatch ? totalreceivedPackagesRegexMatch[1] : 'Not found';
+        
+        pkgscount = totallastreceivedPackages
+    let offset = packagescnt //device_info.getReceivedPackageCnt();
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
     if (
       device_info.getCameraType() == CAMERA_TYPE.DUALCAM &&
@@ -1696,6 +1727,8 @@ writeStream.on('error', (err) => {
     console.log("vd",  connection.write(query))
     device_info.repeat_sent_ts = Date.now();
     device_info.repeat_count++;
+      })
+    }
   }
   if (current_state == FSM_STATE.SEND_METADATA_REQUEST) {
   //  dbg.logAndPrint("Requesting metadata...");

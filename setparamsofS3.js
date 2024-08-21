@@ -23,7 +23,11 @@ async function processVideoFile(device_info_directory, timestamp, frameratevideo
 console.log("convert", d);
     
     try {
-  fs.readFile(filePath,async(err,data)=>{
+  await fs.readFile(filePath,async(err,data)=>{
+
+    if(err){
+      console.log("err err", err);
+    }
 
     let directory = IMEI.split("/").pop();
     let params = {
