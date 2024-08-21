@@ -1706,7 +1706,8 @@ else {
         const totallastreceivedPackages = totalreceivedPackagesRegexMatch ? totalreceivedPackagesRegexMatch[1] : 'Not found';
         
         pkgscount = totallastreceivedPackages
-    let offset = packagescnt //device_info.getReceivedPackageCnt();
+    let offset = totallastreceivedPackages //device_info.getReceivedPackageCnt();
+    console.log("ssd", offset,totallastreceivedPackages)
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
     if (
       device_info.getCameraType() == CAMERA_TYPE.DUALCAM &&

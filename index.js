@@ -283,7 +283,7 @@ const endIndex = metadata.timestamp.indexOf(')');
     const filename = `${timestamp}` + ".mp4"; // filename
     var frameratevideo = metadata.framerate
     // Construct the path to the file
-    timestamp = NaN
+    //timestamp = NaN
     const filePath = path.join(__dirname, IMEI, filename);
     console.log("cloze",  device_info.getUploadedToS3() == false,
     !isNaN(timestamp) ,
