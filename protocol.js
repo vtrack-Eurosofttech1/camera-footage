@@ -1048,7 +1048,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
               );
               console.log("exist file");
               if(fs.existsSync(filePathdupilcate)){
-                fs.writeFile(filePathdupilcate, buffer, (err) => {
+                fs.writeFileSync(filePathdupilcate, buffer, (err) => {
                     if (err) {
                       console.error("Error writing file:", err);
                     } else {
@@ -1065,7 +1065,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
                       device_info.getExtension()
                   );
           
-                  fs.writeFile(filePath, buffer, (err) => {
+                  fs.writeFileSync(filePath, buffer, (err) => {
                     if (err) {
                       console.error("Error writing file:", err);
                     } else {
@@ -1094,18 +1094,22 @@ console.log("actual",actual_crc, "computed", computed_crc)
         //   totalPackages += 1;
 
         let receivedPackages = device_info.getReceivedPackageCnt();
-         // let lastreceivedPackages = device_info.getReceivedPackageCnt();
-          if(pkgscount > receivedPackages){
+         
+        // let lastreceivedPackages = device_info.getReceivedPackageCnt();
+        console.log("s",pkgscount,receivedPackages)
+        if(pkgscount > receivedPackages){
+          console.log("if")
             pkgscount +=1
           }
           else {
+            console.log("else")
             pkgscount = device_info.getReceivedPackageCnt();
           
           }
           console.log("Dsvsdv",totalPackages,receivedPackages )
           const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}\nlastreceivedPackages: ${pkgscount}`;
           const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
-          fs.writeFile(filePath2, content, (err) => {
+          fs.writeFileSync(filePath2, content, (err) => {
               if (err) {
                   console.error("Error writing file:", err);
               } else {
