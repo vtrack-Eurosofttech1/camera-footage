@@ -752,7 +752,7 @@ exports.run_fsm = async function (
 const endIndex = metadata.timestamp.indexOf(')');
 const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
 let pkgscount = 0 ;
-
+const device = new Device();
 device_info.setnewtimestamp(timestamp)
 console.log("timestamo", timestamp)
   var frameratevideo = metadata.framerate
@@ -844,13 +844,8 @@ console.log("timestamo", timestamp)
           progress_bar.start(total_pkg, 0)
           progress_bar.update(recive_pkg);
           emitdatatoSocket(device_info.getDeviceInfoData());
-          const filePath = path.join(
-            __dirname,
-            device_info.getDeviceDirectory(),
-            /* device_info.getCurrentFilename() */ `${timestamp}new` +
-              device_info.getExtension()
-          );
-          const emptyContent = ''; // Empty string
+          
+         /*  const emptyContent = ''; // Empty string
           if(fs.existsSync(filePath)){
             fs.appendFile(filePath, emptyContent, (err) => {
                 if (err) {
@@ -868,7 +863,24 @@ else{
           console.log("The buffer2 has been saved at:", filePath);
         }
       });
-}
+} */
+
+      try {
+        const filePath1 = path.join(
+          __dirname,
+          device_info.getDeviceDirectory(),
+          `${timestamp}` +
+         '.bin'
+        );
+        // Read existing file data
+        const existingData = fs.readFileSync(filePath1);
+        device.file_buff = existingData;
+      // console.log('Existing buffer:', device.file_buff);
+      } catch (err) {
+        console.error('Error reading file length:', err);
+      //  device.file_buff = Buffer.alloc(0); // In case of error, start with an empty buffer
+      }
+     
          
     
     });
@@ -989,10 +1001,14 @@ console.log("actual",actual_crc, "computed", computed_crc)
         switch (device_info.getCameraType()) {
           case CAMERA_TYPE.DUALCAM: {
             console.log("dual")
-            device_info.addToBuffer(
+            let receivedPackageCnt =  Math.floor(device.file_buff.length / 1024);
+            const offset = receivedPackageCnt * 1024;
+    console.log('Offset:', offset);
+    device_info.addToBuffer(raw_file, offset);
+            /* device_info.addToBuffer(
               raw_file,
               device_info.getReceivedPackageCnt() * 1024
-            );
+            ); */
            device_info.incrementReceivedPackageCnt(1);
             break;
           }
@@ -1038,15 +1054,39 @@ console.log("actual",actual_crc, "computed", computed_crc)
         emitdatatoSocket(device_info.getDeviceInfoData());
         // Save for calculating next packet's CRC
         device_info.setLastCRC(actual_crc);
-        let buffer = Buffer.from(device_info.getFileBuffer(), "base64");
+       let buffer = Buffer.from(device_info.getFileBuffer(), "base64");
+       let retrievedBuffer = device.getFileBuffer();
         try {
             const filePathdupilcate = path.join(
                 __dirname,
                 device_info.getDeviceDirectory(),
-                /* device_info.getCurrentFilename() */ `${timestamp}new` +
+                /* device_info.getCurrentFilename() */ `${timestamp}` +
+                  '.bin'
+              );
+              fs.writeFileSync(filePathdupilcate, retrievedBuffer, (err) => {
+                if (err) {
+                  console.error("Error writing file:", err);
+                } else {
+                  console.log("The buffer has been saved at:", filePathdupilcate);
+                }
+              });
+              const filePath = path.join(
+                __dirname,
+                device_info.getDeviceDirectory(),
+               `${timestamp}` +
                   device_info.getExtension()
               );
-              console.log("exist file");
+      
+              fs.writeFileSync(filePath, buffer, (err) => {
+                if (err) {
+                  console.error("Error writing file:", err);
+                } else {
+                  console.log("The buffer has been saved at:", filePath);
+                }
+              });
+            
+             
+              /* console.log("exist file");
               if(fs.existsSync(filePathdupilcate)){
                 fs.writeFileSync(filePathdupilcate, buffer, (err) => {
                     if (err) {
@@ -1061,7 +1101,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
                 const filePath = path.join(
                     __dirname,
                     device_info.getDeviceDirectory(),
-                    /* device_info.getCurrentFilename() */ `${timestamp}` +
+                   `${timestamp}` +
                       device_info.getExtension()
                   );
           
@@ -1074,7 +1114,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
                   });
                 
                  
-              }
+              } */
               /* let data1 = Buffer.from(device_info.getFileBuffer(), 'base64')
               const newfilePath = path.join(
                 __dirname,
@@ -1558,11 +1598,11 @@ console.log("actual",actual_crc, "computed", computed_crc)
 const file2Path = path.join(
     __dirname,
     device_info.getDeviceDirectory(),
-    /* device_info.getCurrentFilename() */ `${timestamp}new` +
-      device_info.getExtension()
+    /* device_info.getCurrentFilename() */ `${timestamp}` +
+      '.bin'
   );
   if(fs.existsSync(file1Path) && fs.existsSync(file2Path)){ 
-// Create a readable stream for the second file
+/* // Create a readable stream for the second file
 const readStream = fs.createReadStream(file2Path);
 
 // Create a writable stream for the first file in append mode
@@ -1587,7 +1627,25 @@ readStream.on('error', (err) => {
 
 writeStream.on('error', (err) => {
   console.error('Error writing file:', err);
+}); */
+const sourceData = fs.readFileSync(file2Path);
+fs.writeFileSync(file1Path, sourceData, (err) => {
+  if (err) {
+      console.error("Error writing file:", err);
+  } else {
+      console.log("The file has been saved at:", file1Path);
+      if (device_info.getExtension() == ".h265") {
+        processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+        }
+        else {
+            processImageFile(`${timestamp}`,device_info)
+        }
+  }
 });
+
+
+
+
 }
 else {
   if (device_info.getExtension() == ".h265") {
