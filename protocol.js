@@ -751,8 +751,8 @@ exports.run_fsm = async function (
  const startIndex = metadata.timestamp.indexOf('(') + 1;
 const endIndex = metadata.timestamp.indexOf(')');
 const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
-let pkgscount = 0 ;
-const device = new Device();
+var pkgscount  ;
+//const device = new Device();
 device_info.setnewtimestamp(timestamp)
 console.log("timestamo", timestamp)
   var frameratevideo = metadata.framerate
@@ -762,8 +762,9 @@ console.log("timestamo", timestamp)
       dbg.logAndPrint("cmd start");
       switch (device_info.getCameraType()) {
         case CAMERA_TYPE.DUALCAM: {
+          pkgscount = 0
           device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-          console.log("sdata_bufferE(4)",data_buffer.readUInt32BE(4))
+          console.log("sdata_bufferE(4)",data_buffer.readUInt32BE(4),'buufer',data_buffer)
           break;
         }
         
@@ -874,7 +875,8 @@ else{
         );
         // Read existing file data
         const existingData = fs.readFileSync(filePath1);
-        device.file_buff = existingData;
+        device_info.file_buff = existingData;
+        console.log("cscs", device_info.file_buff.length)
       // console.log('Existing buffer:', device.file_buff);
       } catch (err) {
         console.error('Error reading file length:', err);
@@ -1001,14 +1003,14 @@ console.log("actual",actual_crc, "computed", computed_crc)
         switch (device_info.getCameraType()) {
           case CAMERA_TYPE.DUALCAM: {
             console.log("dual")
-            let receivedPackageCnt =  Math.floor(device.file_buff.length / 1024);
+            let receivedPackageCnt =  Math.floor(device_info.file_buff.length / 1024);
             const offset = receivedPackageCnt * 1024;
-    console.log('Offset:', offset);
+    console.log('Offset:', offset, receivedPackageCnt, device_info.file_buff.length);
     device_info.addToBuffer(raw_file, offset);
-            /* device_info.addToBuffer(
-              raw_file,
-              device_info.getReceivedPackageCnt() * 1024
-            ); */
+            //  device_info.addToBuffer(
+            //   raw_file,
+            //   device_info.getReceivedPackageCnt() * 1024
+            // ); 
            device_info.incrementReceivedPackageCnt(1);
             break;
           }
@@ -1055,7 +1057,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
         // Save for calculating next packet's CRC
         device_info.setLastCRC(actual_crc);
        let buffer = Buffer.from(device_info.getFileBuffer(), "base64");
-       let retrievedBuffer = device.getFileBuffer();
+       let retrievedBuffer = device_info.getFileBuffer();
         try {
             const filePathdupilcate = path.join(
                 __dirname,
@@ -1131,31 +1133,72 @@ console.log("actual",actual_crc, "computed", computed_crc)
               }); */
 
               const totalPackages = device_info.getTotalPackages();
-        //   totalPackages += 1;
-
-        let receivedPackages = device_info.getReceivedPackageCnt();
+        
+              //   totalPackages += 1;
+              const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
          
-        // let lastreceivedPackages = device_info.getReceivedPackageCnt();
-        console.log("s",pkgscount,receivedPackages)
-        if(pkgscount > receivedPackages){
-          console.log("if")
-            pkgscount +=1
-          }
-          else {
-            console.log("else")
-            pkgscount = device_info.getReceivedPackageCnt();
+              let pkgscount;
+        let receivedPackages = device_info.getReceivedPackageCnt();
+         try {
+          if(fs.existsSync(filePath2)){
+
           
-          }
-          console.log("Dsvsdv",totalPackages,receivedPackages )
-          const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}\nlastreceivedPackages: ${pkgscount}`;
-          const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.txt');
-          fs.writeFileSync(filePath2, content, (err) => {
-              if (err) {
-                  console.error("Error writing file:", err);
-              } else {
-                  console.log("The file has been saved at:", filePath2);
-              }
-          });
+          fs.readFile(filePath2, 'utf8', (err, data) => {
+            if (err) {
+              console.error('Error reading the file:', err);
+              return;
+            }
+        
+            const totalreceivedPackagesRegex = /lastreceivedPackages:\s*(\d+)/; 
+        
+            // Find matches
+            const totalreceivedPackagesRegexMatch = data.match(totalreceivedPackagesRegex);
+            const totallastreceivedPackages = totalreceivedPackagesRegexMatch ? parseInt(totalreceivedPackagesRegexMatch[1], 10) : 0;
+           
+            pkgscount = totallastreceivedPackages
+            console.log("sftggf",pkgscount)
+       
+          console.log("s",pkgscount,receivedPackages)
+          if(pkgscount > receivedPackages){
+            console.log("if")
+              pkgscount +=1
+            }
+            else {
+              console.log("else")
+              pkgscount = device_info.getReceivedPackageCnt();
+            
+            }
+            console.log("Dsvsdv",totalPackages,receivedPackages )
+            const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}\nlastreceivedPackages: ${pkgscount}`;
+            fs.writeFileSync(filePath2, content, (err) => {
+                if (err) {
+                    console.error("Error writing file:", err);
+                } else {
+                    console.log("The file has been saved at:", filePath2);
+                }
+            });
+          })
+        }
+
+ else {
+ let  pkgscount = device_info.getReceivedPackageCnt();
+ let receivedPackages =device_info.getReceivedPackageCnt();
+  const content = `total packages: ${totalPackages}\nReceivedPackages: ${receivedPackages}\nlastcrc: ${device_info.getLastCRC()}\nlastreceivedPackages: ${pkgscount}`;
+  fs.writeFileSync(filePath2, content, (err) => {
+      if (err) {
+          console.error("Error writing file:", err);
+      } else {
+          console.log("The file has been saved at:", filePath2);
+      }
+  });
+ }
+      } catch (error) {
+          console.log("error",error)
+         }
+        // let lastreceivedPackages = device_info.getReceivedPackageCnt();
+        
+    
+       
 
         } catch (error) {
             console.log("errr", error);
@@ -1602,52 +1645,61 @@ const file2Path = path.join(
       '.bin'
   );
   if(fs.existsSync(file1Path) && fs.existsSync(file2Path)){ 
-/* // Create a readable stream for the second file
-const readStream = fs.createReadStream(file2Path);
+ // Create a readable stream for the second file
+// const readStream = fs.createReadStream(file2Path);
 
-// Create a writable stream for the first file in append mode
-const writeStream = fs.createWriteStream(file1Path, { flags: 'a' });
+// // Create a writable stream for the first file in append mode
+// const writeStream = fs.createWriteStream(file1Path, { flags: 'a' });
 
-// Append the contents of the second file to the first file
-readStream.pipe(writeStream);
+// // Append the contents of the second file to the first file
+// readStream.pipe(writeStream);
 
-readStream.on('end', () => {
-  console.log('File appended successfully!');
-  if (device_info.getExtension() == ".h265") {
-    processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+// readStream.on('end', () => {
+//   console.log('File appended successfully!');
+//   if (device_info.getExtension() == ".h265") {
+//     processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+//     }
+//     else {
+//         processImageFile(`${timestamp}`,device_info)
+//     }
+// });
+
+// readStream.on('error', (err) => {
+//   console.error('Error reading file:', err);
+// });
+
+// writeStream.on('error', (err) => {
+//   console.error('Error writing file:', err);
+// }); 
+console.log("in")
+try {
+  const sourceData = fs.readFileSync(file2Path);
+  let buffer = Buffer.from(sourceData, "base64");
+  console.log("in 222")
+  fs.writeFile(file1Path, buffer, (err) => {
+    if (err) {
+        console.error("Error writing file:", err);
+    } else {
+        console.log("The file has been saved at:", file1Path);
+        if (device_info.getExtension() == ".h265") {
+          processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+          }
+          else {
+              processImageFile(`${timestamp}`,device_info)
+          }
     }
-    else {
-        processImageFile(`${timestamp}`,device_info)
-    }
-});
-
-readStream.on('error', (err) => {
-  console.error('Error reading file:', err);
-});
-
-writeStream.on('error', (err) => {
-  console.error('Error writing file:', err);
-}); */
-const sourceData = fs.readFileSync(file2Path);
-fs.writeFileSync(file1Path, sourceData, (err) => {
-  if (err) {
-      console.error("Error writing file:", err);
-  } else {
-      console.log("The file has been saved at:", file1Path);
-      if (device_info.getExtension() == ".h265") {
-        processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
-        }
-        else {
-            processImageFile(`${timestamp}`,device_info)
-        }
-  }
-});
+  });
+  
+} catch (error) {
+  console.log("error in",error)
+}
 
 
 
 
 }
 else {
+  console.log("else in")
   if (device_info.getExtension() == ".h265") {
     processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
     }
