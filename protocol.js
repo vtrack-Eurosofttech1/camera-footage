@@ -754,18 +754,19 @@ const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 1
 var pkgscount  ;
 //const device = new Device();
 device_info.setnewtimestamp(timestamp)
-console.log("timestamo", timestamp)
+console.log("timestamp", timestamp)
   var frameratevideo = metadata.framerate
 
   switch (cmd_id) {
-    case CMD_ID.START: { console.log("start ")
+    case CMD_ID.START: { //console.log("start ")
       dbg.logAndPrint("cmd start");
       switch (device_info.getCameraType()) {
         case CAMERA_TYPE.DUALCAM: {
           pkgscount = 0
           device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-          console.log("sdata_bufferE(4)",data_buffer.readUInt32BE(4),'buufer',data_buffer)
-          break;
+         // console.log("sdata_bufferE(4)",data_buffer.readUInt32BE(4),'buufer',data_buffer)
+         dbg.logAndPrint("sdata_bufferE(4)",data_buffer.readUInt32BE(4),'buufer',data_buffer); 
+         break;
         }
         
       }
@@ -821,7 +822,8 @@ console.log("timestamo", timestamp)
       crcvalue =lastcrc
       ttlpkg = totalPackage
 
-    console.log("read ", packagescnt)
+   // console.log("read ", packagescnt)
+    dbg.logAndPrint("read " + packagescnt)
     device_info.setLastCRC(crcvalue);
     device_info.setReceivedPackageCnt(packagescnt);
     device_info.setTotalPackages((ttlpkg - packagescnt) )
@@ -836,7 +838,7 @@ console.log("timestamo", timestamp)
     offset = offsetNum.toString()
 
     query.writeUInt32BE(offset, 4);
-    console.log("??",   query.writeUInt32BE(offset, 4), offset)
+   // console.log("??",   query.writeUInt32BE(offset, 4), offset)
           connection.write(query);
          // dbg.log("[TX]: [" + query.toString("hex") + "]");
           current_state = FSM_STATE.WAIT_FOR_CMD;
@@ -876,7 +878,8 @@ else{
         // Read existing file data
         const existingData = fs.readFileSync(filePath1);
         device_info.file_buff = existingData;
-        console.log("cscs", device_info.file_buff.length)
+      //  console.log("cscs", device_info.file_buff.length)
+      dbg.logAndPrint("cscs " +  device_info.file_buff.length)
       // console.log('Existing buffer:', device.file_buff);
       } catch (err) {
         console.error('Error reading file length:', err);
@@ -917,13 +920,13 @@ else{
 
       break;
     }
-    case CMD_ID.SYNC: { console.log("sync")
+    case CMD_ID.SYNC: { //console.log("sync")
       dbg.logAndPrint("cmd sync");
       device_info.sync_received = true;
       device_info.setLastCRC(0);
            let sync_packet = data_buffer.readUInt32BE(4);
            let indexOfSync = data_buffer.toString("hex").indexOf("00030004");
-           console.log("indexOfSync",indexOfSync, data_buffer,sync_packet.toString() )
+          // console.log("indexOfSync",indexOfSync, data_buffer,sync_packet.toString() )
            let sync_packet_str = sync_packet.toString() 
            if(sync_packet_str.endsWith('1')){
             sync_packet_str  = sync_packet_str.slice(0, -1)
@@ -967,7 +970,7 @@ else{
     }
 
     case CMD_ID.DATA: {
-      console.log("=data")
+     // console.log("=data")
       dbg.logAndPrint("cmd data");
       if (device_info.sync_received == false) {
         dbg.logAndPrint("cmd data sync recived");
@@ -976,12 +979,14 @@ else{
       }
       /* Read data length minus CRC */
       let data_len = data_buffer.readUInt16BE(2) - 2;
-      console.log("data_len", data_len)
+    //  console.log("data_len", data_len)
+    dbg.logAndPrint("data_len " +  data_len)
       /* Get raw file data */
       let raw_file = data_buffer.slice(4, 4 + data_len);
+      dbg.logAndPrint("raw_file " +  raw_file.length)
       //dbg.logAndPrint("raw_file" + Buffer.from(data_buffer, 'utf-8'))
     //  console.log("ads", raw_file)
-    console.log("getLastCRC", device_info.getLastCRC())
+   // console.log("getLastCRC", device_info.getLastCRC())
       /* Calculate CRC + add sum of last packet */
       let computed_crc = crc16_generic(
         device_info.getLastCRC(),
@@ -991,23 +996,26 @@ else{
       /* Read actual CRC in packet */
       let actual_crc = data_buffer.readUInt16BE(4 + data_len);
       /* Calculate CRC and display with actual */
-console.log("actual",actual_crc, "computed", computed_crc)
+      dbg.logAndPrint(  "actual " + actual_crc + "computed " + computed_crc)
+//console.log("actual",actual_crc, "computed", computed_crc)
     //  dbg.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
 
       if (computed_crc != actual_crc) {
       //  dbg.error("CRC mismatch!");
-        console.log("CRC mismatch!");
+       // console.log("CRC mismatch!");
         dbg.logAndPrint("CRC mismatch!")
         current_state = FSM_STATE.REPEAT_PACKET;
       } else {
         dbg.logAndPrint("cmd data else crc ")
         switch (device_info.getCameraType()) {
           case CAMERA_TYPE.DUALCAM: {
-            console.log("dual")
+           // console.log("dual")
+        
             let receivedPackageCnt =  Math.floor(device_info.file_buff.length / 1024);
             const offset = receivedPackageCnt * 1024;
            // const offset = receivedPackageCnt * data_len;
-    console.log('Offset:', offset, receivedPackageCnt, device_info.file_buff.length);
+   // console.log('Offset:', offset, receivedPackageCnt, device_info.file_buff.length);
+   dbg.logAndPrint( 'Offset:' + offset +"  receivedPackageCnt" + receivedPackageCnt + "file_buff.length" + device_info.file_buff.length)
     device_info.addToBuffer(raw_file, offset);
             //  device_info.addToBuffer(
             //   raw_file,
@@ -1045,7 +1053,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
         // device_info.addToBuffer(raw_file);
         let rx_pkg_cnt = device_info.getReceivedPackageCnt();
         let ttl_cnt = device_info.getTotalPackages();
-        console.log("ds",rx_pkg_cnt, ttl_cnt)
+       // console.log("ds",rx_pkg_cnt, ttl_cnt)
         progress_bar.update(rx_pkg_cnt);
         dbg.logAndPrint("cmd data rx_pkg_cnt" + rx_pkg_cnt)
         console.log(rx_pkg_cnt,
@@ -1158,7 +1166,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
             const totallastreceivedPackages = totalreceivedPackagesRegexMatch ? parseInt(totalreceivedPackagesRegexMatch[1], 10) : 0;
            
             pkgscount = totallastreceivedPackages
-            console.log("sftggf",pkgscount)
+          //  console.log("sftggf",pkgscount)
        
           console.log("s",pkgscount,receivedPackages)
           if(pkgscount > receivedPackages){
@@ -1678,6 +1686,12 @@ try {
   const sourceData = fs.readFileSync(file2Path);
   let buffer = Buffer.from(sourceData, "base64");
   console.log("in 222")
+  fs.truncate(file1Path, 0, (err) => {
+    if (err) {
+        console.error(`Error truncating file ${file1Path}:`, err);
+    } else {
+        console.log(`File ${file1Path} has been truncated.`);
+
   fs.writeFile(file1Path, buffer, (err) => {
     if (err) {
         console.error("Error writing file:", err);
@@ -1691,6 +1705,8 @@ try {
           }
     }
   });
+}
+});
   
 } catch (error) {
   console.log("error in",error)
