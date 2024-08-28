@@ -976,6 +976,7 @@ else{
       }
       /* Read data length minus CRC */
       let data_len = data_buffer.readUInt16BE(2) - 2;
+      console.log("data_len", data_len)
       /* Get raw file data */
       let raw_file = data_buffer.slice(4, 4 + data_len);
       //dbg.logAndPrint("raw_file" + Buffer.from(data_buffer, 'utf-8'))
@@ -1005,6 +1006,7 @@ console.log("actual",actual_crc, "computed", computed_crc)
             console.log("dual")
             let receivedPackageCnt =  Math.floor(device_info.file_buff.length / 1024);
             const offset = receivedPackageCnt * 1024;
+           // const offset = receivedPackageCnt * data_len;
     console.log('Offset:', offset, receivedPackageCnt, device_info.file_buff.length);
     device_info.addToBuffer(raw_file, offset);
             //  device_info.addToBuffer(
