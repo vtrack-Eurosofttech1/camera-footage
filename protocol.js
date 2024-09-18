@@ -235,6 +235,20 @@ Device.prototype.setUploadedToS3 = function (value) {
 Device.prototype.getUploadedToS3 = function () {
   return this.uploaded_to_s3;
 };
+Device.prototype.getsavedHalfData = function () {
+ return {
+  clientId: this.clientId ,  //device_info.getclientId(),
+      vehicle: this.vehicle, //device_info.getvehicle(),
+      timestamp: this.newtimestamp , //device_info.newtimestamp(),
+      progress: 100,
+      message: "Due to low GSM signal Downloading stop! Downloaded Media is uploaded"
+   
+
+}
+
+};
+
+
 Device.prototype.getDeviceInfoData = function () {
   let extension ;
   if(this.extension_to_use==".h265"){
@@ -972,7 +986,10 @@ else{
     case CMD_ID.DATA: {
      // console.log("=data")
       dbg.logAndPrint("cmd data");
-      if (device_info.sync_received == false) {
+      // dbg.logAndPrint("lat"+  metadata.getLatitude()+ "lng"
+      // + metadata.getLongitude()
+      //     )
+        if (device_info.sync_received == false) {
         dbg.logAndPrint("cmd data sync recived");
         current_state = FSM_STATE.WAIT_FOR_CMD;
         break;
@@ -984,6 +1001,7 @@ else{
       /* Get raw file data */
       let raw_file = data_buffer.slice(4, 4 + data_len);
       dbg.logAndPrint("raw_file " +  raw_file.length)
+      dbg.logAndPrint("device_info.getLastCRC()" +  device_info.getLastCRC())
       //dbg.logAndPrint("raw_file" + Buffer.from(data_buffer, 'utf-8'))
     //  console.log("ads", raw_file)
    // console.log("getLastCRC", device_info.getLastCRC())
@@ -1861,6 +1879,31 @@ else {
     device_info.repeat_sent_ts = Date.now();
     device_info.repeat_count++;
       })
+    }
+    else {
+      let offset = device_info.getReceivedPackageCnt();
+    console.log("ssd", offset)
+    let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
+    if (
+      device_info.getCameraType() == CAMERA_TYPE.DUALCAM &&
+      device_info.getProtocolVersion() <= 5
+    ) {
+     // offset = offset ;
+     let offsetNum = parseInt(offset, 10)
+     offsetNum +=1
+     offset = offsetNum.toString()
+    }
+    query.writeUInt32BE(offset, 4);
+    // dbg.logAndPrint(
+    //   "Requesting for a repeat of last packet: " + offset.toString()
+    // );
+    // dbg.log("[TX]: [" + query.toString("hex") + "]");
+    console.log("[TX]: [" + query.toString("hex") + "]"+offset)
+    connection.write(query);
+    console.log("vd",  connection.write(query))
+    device_info.repeat_sent_ts = Date.now();
+    device_info.repeat_count++;
+      
     }
   }
   if (current_state == FSM_STATE.SEND_METADATA_REQUEST) {

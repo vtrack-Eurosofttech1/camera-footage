@@ -10,6 +10,7 @@ const path = require("path");
 const { uploadToS3 } = require("./uploadToS3.js");
 const { exec } = require("child_process");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
+const emitdatatoSocket = require("./socket.js");
 process.setMaxListeners(12);
 
 /* dbg.logAndPrint(
@@ -129,7 +130,7 @@ function handleConnection(connection) {
   let lastActivityTime = Date.now(); // Track the last activity time
   dbg.logAndPrint("Client connected: " + remoteAddress);
 
-  const INACTIVITY_TIMEOUT = 30000; // 15 seconds
+  const INACTIVITY_TIMEOUT = 30000; // 30 seconds
 
   // Timer to check inactivity
   const inactivityTimer = setInterval(() => {
@@ -268,11 +269,20 @@ function handleConnection(connection) {
       }
     }
   }
+
+  
   function onConnClose() {
     clearInterval(inactivityTimer);
     // dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
-    console.log("onConnClose", device_info.getUploadedToS3());
+    console.log("onConnClose", device_info.getUploadedToS3() )//, device_info.getsavedHalfData());
     // let timestamp = 
+    // let sendedData = {
+    //   clientId: device_info.getclientId(),
+    //   vehicle: device_info.getvehicle(),
+    //   timestamp: device_info.newtimestamp(),
+    //   progress: 100,
+    //   message: "Device is not sending data or camera is off!! Downloaded file is uploaded"
+    // }
     const startIndex = metadata.timestamp.indexOf('(') + 1;
 const endIndex = metadata.timestamp.indexOf(')');
     let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
@@ -381,13 +391,21 @@ const endIndex = metadata.timestamp.indexOf(')');
           cameraType,
         });
         device_info.setUploadedToS3(true);
+       // console.log("dsdsfds", sendedData)
+        emitdatatoSocket(device_info.getsavedHalfData())
         }).catch(error => {
           console.log("Error converting or uploading:222", error);
         });
       } else {
         const IMEI = device_info.getDeviceDirectory(); // IMEI number
         const filename = `${timestamp}` + device_info.getExtension(); // filename
-
+        // let sendedData = {
+        //   clientId: device_info.getclientId(),
+        //   vehicle: device_info.getvehicle(),
+        //   timestamp: device_info.newtimestamp(),
+        //   progress: 100,
+        //   message: "Device is not sending data or camera is off!! Downloaded file is uploaded"
+        // }
         // Construct the path to the file
         console.log('-0-0-0-0-' ,IMEI, filename)
         const filePath = path.join(__dirname, IMEI, filename);
@@ -408,6 +426,7 @@ const endIndex = metadata.timestamp.indexOf(')');
         uploadToS3(params, { fileType, fileName, deviceIMEI: directory, cameraType }).then(
           (result) => {
             device_info.setUploadedToS3(true);
+            emitdatatoSocket(device_info.getsavedHalfData())
             // fs.unlink(filePath, (err) => {
             //   if (err) {
             //     console.error("Error deleting file:", err);

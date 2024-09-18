@@ -1,6 +1,6 @@
 const { Server } = require("socket.io");
-// const https = require("https");
-const server = require("https");
+const https = require("https");
+//const server = require("https");
 const fs = require("fs");
 
 const certPath = "./certs/server_cert.pem"
@@ -12,30 +12,42 @@ var httpsOptions = {
 
 
 const WEB_SERVER_PORT = 7057;
-const httpsServer = server.createServer(httpsOptions);
+const httpsServer = https.createServer(httpsOptions);
 const io = new Server({ cors: { origin: "*" } });
 
 httpsServer.listen(WEB_SERVER_PORT, () => {
     console.log("Socket Server is running on port " + WEB_SERVER_PORT);
 });
 io.listen(httpsServer)
-
+const clients = new Map()
 io.on("connection", (socket) => {
     console.log("A client connected:", socket.id,socket.handshake.query);
+    setTimeout(()=>{
+
+    },10000)
     // socket._onclose((e)=>{
     //     console.log(".....",e)
     // })
+   
+    
+    socket.on("disconnect", (e)=>{
+            console.log("disconn", socket.handshake.headers.origin)
+         })
 });
+// io.on("disconnect", (e)=>{
+//     console.log("disconn", e)
+// })
 
 function emitdatatoSocket(payload) {
     const { clientId } = payload;
- //  console.log("afcbsdjfcd", payload)
+  // console.log("afcbsdjfcd", payload)
     io.fetchSockets().then((sockets) => {
-       // console.log(sockets)
+        //console.log(sockets)
         
         sockets.forEach((socket) => {
+            console.log("====", socket.handshake.headers.origin)
             if (clientId == socket.handshake.query.clientId) {
-               // console.log("====", payload)
+               
             //    let progress = (payload.received_packages/payload.total_packages)*100
                 socket.emit("message", payload);
             }
