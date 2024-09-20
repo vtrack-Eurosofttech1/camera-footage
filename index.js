@@ -11,6 +11,7 @@ const { uploadToS3 } = require("./uploadToS3.js");
 const { exec } = require("child_process");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 const emitdatatoSocket = require("./socket.js");
+const { checkVideoPlayback, videoConversion } = require("./nn.js");
 process.setMaxListeners(12);
 
 /* dbg.logAndPrint(
@@ -136,7 +137,7 @@ function handleConnection(connection) {
   const inactivityTimer = setInterval(() => {
     if (Date.now() - lastActivityTime > INACTIVITY_TIMEOUT) {
       console.log("Closing connection due to inactivity.");
-      connection.end(); // Close the connection
+      connection.destroy(); // Close the connection
       clearInterval(inactivityTimer); // Clear the interval timer
     }
   }, 1000); // Check every second
@@ -353,9 +354,56 @@ const endIndex = metadata.timestamp.indexOf(')');
        
           device_info.getExtension()
         ).then(async (d) => {
-          const IMEI = device_info.getDeviceDirectory(); // IMEI number
+
+          /* 
+          old code
+                    const IMEI = device_info.getDeviceDirectory(); // IMEI number
           const filename = `${timestamp}` + ".mp4"; // filename
           let cameraType =  device_info.getFileToDL()
+          // Construct the path to the file
+          var filePath = path.join(__dirname, IMEI, filename);
+        let fileContent;
+          try{
+           fileContent = fs.readFileSync(filePath);}catch(e){
+            console.log(e.message)
+          }
+          params.Body = fileContent;
+          //    console.log('uploading start', fileContent);
+          let deviceInfo = device_info.getDeviceDirectory();
+          let directory = deviceInfo.split("/").pop();
+         
+          
+        console.log("asdfcsd2", params, {
+          fileType,
+          fileName,
+          deviceIMEI: directory,
+          filePath,
+          cameraType})
+        uploadToS3(params, {
+          fileType,
+          fileName,
+          deviceIMEI: directory,
+          filePath,
+          cameraType,
+        });
+        device_info.setUploadedToS3(true);
+       
+        emitdatatoSocket(device_info.getsavedHalfData())
+        }).catch(error => {
+          console.log("Error converting or uploading:222", error);
+        });
+          */
+
+          var IMEI = device_info.getDeviceDirectory(); // IMEI number
+          var filename = `${timestamp}` + ".mp4"; // filename
+          var cameraType =  device_info.getFileToDL()
+
+          const filePathnew = path.join(__dirname, IMEI, filename);
+console.log("d", filePathnew);
+         await checkVideoPlayback(filePathnew)
+    .then(() => {
+        console.log('Video is playable.');
+       
           // Construct the path to the file
           var filePath = path.join(__dirname, IMEI, filename);
         let fileContent;
@@ -396,6 +444,26 @@ const endIndex = metadata.timestamp.indexOf(')');
         }).catch(error => {
           console.log("Error converting or uploading:222", error);
         });
+      })
+      .catch((error) => {
+          console.log("video play error",error.message);
+          let deviceInfo = device_info.getDeviceDirectory();
+          let imei = deviceInfo.split("/").pop();
+          const file1Path = path.join(
+            __dirname,
+            `downloads/${imei}/${timestamp}.mp4`
+          );
+          if(fs.existsSync(file1Path)){
+            fs.unlink(file1Path, (err) => {
+              if (err) {
+                  console.error('Error deleting the file:', err);
+              } else {
+                  console.log('File deleted successfully.');
+              }
+          });
+          }
+          videoConversion(imei,timestamp)
+      });
       } else {
         const IMEI = device_info.getDeviceDirectory(); // IMEI number
         const filename = `${timestamp}` + device_info.getExtension(); // filename
