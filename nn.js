@@ -2,6 +2,11 @@ const fs = require("fs");
 const path = require("path");
 const { ConvertVideoFile } = require("./ConvertVideoFile");
 const { uploadToS3 } = require("./uploadToS3");
+
+ const ffmpeg = require("fluent-ffmpeg")
+ const ffmpegPath = require("ffmpeg-static")
+ 
+ ffmpeg.setFfmpegPath(ffmpegPath)
 //const emitdatatoSocket = require("./socket");
 /* var timestamp = "1725366533000"
 const file1Path = path.join(
@@ -155,40 +160,36 @@ const videoConversion = (imei,timestamp) =>{
 
 }
 
-function checkVideoPlayback(videoUrl) {
+function checkVideoPlayback(videoPath) {
     return new Promise((resolve, reject) => {
-        const video = document.createElement('video');
-
-        // Set the video source
-        video.src = videoUrl;
-
-        // Listen for the 'canplaythrough' event
-        video.addEventListener('canplaythrough', () => {
-            video.pause(); // Pause after it can play through
-            resolve(true); // Video is playable
-        });
-
-        // Listen for error events
-        video.addEventListener('error', (event) => {
-            // If an error occurs, reject the promise
-            reject(new Error('Video playback error: ' + event.message));
-        });
-
-        // Load the video
-        video.load();
-
-        // Optional: Set a timeout to reject if it takes too long
-        setTimeout(() => {
-            reject(new Error('Video took too long to load.'));
-        }, 10000); // 10 seconds timeout
-    });
+    ffmpeg.ffprobe(videoPath,  (err, metadata) =>{
+        if(err){
+           return reject(new Error("error"))
+           
+        }
+        //console.log("metadat", metadata)
+        resolve(true)
+    })
+    })
 }
 
+// const file1Path = path.join(
+//     __dirname,
+//     `downloads/863719061653375/1726658546000.mp4`
+//   );
+const file1Path = path.join(
+        __dirname,
+        `downloads/863719061653375/1724410035000c.mp4`
+      );
 
-
-
-
-export { videoConversion, checkVideoPlayback };
+checkVideoPlayback(file1Path)
+.then(() => {
+    console.log('Video is playable.');
+})
+.catch((error) => {
+    console.log('Verror');
+})
+module.exports= {videoConversion, checkVideoPlayback} 
 /* 
 let payload ={ 
     clientId: "64f9c5c3b7f9957d81e36908",
