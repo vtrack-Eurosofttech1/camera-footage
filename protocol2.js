@@ -791,12 +791,16 @@ const updateJSONFile = async(newValues, filePath,redisClient) => {
     //         // Write the updated data back to the file
     //         return writeJSONFile(filePath, jsonData);
     //     });
+    filePath = filePath.toString();
     let b =JSON.parse(await redisClient.get(filePath))
     if(!b){
       redisClient.set(filePath,JSON.stringify(newValues))
     }else{
-      b.buffer.push(...newValues.buffer)
-      redisClient.set(filePath,JSON.stringify(b))
+      b.buffer.push(...newValues.buffer||[])
+      delete newValues.buffer
+      redisClient.set(filePath,JSON.stringify({
+        ...b,...newValues
+      }))
 
     }
 
@@ -838,8 +842,10 @@ console.log("timestamp",timestamp)
         
       }
         try {
-          const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
-  if(fs.existsSync(filePath2)){
+         // const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+         
+           const data = await redisClient.get(timestamp.toString());
+  if(data){
   let packagescnt ;
 
     let ttlpkg;
@@ -849,8 +855,8 @@ console.log("timestamp",timestamp)
         console.error('Error reading the file:', err);
         return;
       } */
-       let jsondata = readJSONFile(filePath2)
-
+       //let jsondata = readJSONFile(filePath2)
+       const jsondata = JSON.parse(data);
       packagescnt = jsondata.receivedPackages
       pkgscount =  jsondata.receivedPackages  
      
