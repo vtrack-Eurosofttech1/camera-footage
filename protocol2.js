@@ -1443,7 +1443,7 @@ let a = {
 //   );
  
 try {
-    const filebuff = JSON.parse(redisClient.get(timestamp)).buffer
+    const filebuff = JSON.parse(redisClient.get(timestamp.toString())).buffer
     // readJSONFile(filePath).buffer;
     let bufferData = Buffer.from(filebuff, "base64");
     let filePath2 = path.join(
@@ -1553,7 +1553,7 @@ device_info.resetReceivedPackageCnt();
     //   console.log(error)
     // }
    
-    let jsonReaddata  =  JSON.parse(await redisClient.get(timestamp))
+    let jsonReaddata  =  JSON.parse(await redisClient.get(timestamp.toString()))
     if(jsonReaddata){
     
 
