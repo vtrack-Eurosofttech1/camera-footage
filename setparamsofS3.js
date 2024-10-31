@@ -10,9 +10,9 @@ const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 // Function to update the JSON file with new values
 const updateJSONFile =async (newValues,filePath,redisClient) => {
   filePath = filePath.toString()
-  // let b =JSON.parse(await redisClient.get(filePath))
+  let b =JSON.parse(await redisClient.get(filePath))
 
-    redisClient.set(filePath,JSON.stringify(newValues))
+    redisClient.set(filePath,JSON.stringify({...b,...newValues}))
 
 
   
