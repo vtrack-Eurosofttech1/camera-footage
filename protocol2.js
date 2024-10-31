@@ -1027,7 +1027,7 @@ let a = {
     Timestamp: Date.now()
 }
         //let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
-        let val = JSON.parse(await redisClient.get(timestamp))
+        let val = JSON.parse(await redisClient.get(timestamp.toString()))
           let newData = {
             receivedPackages: val.receivedPackages+1,
             lastcrc: actual_crc,
