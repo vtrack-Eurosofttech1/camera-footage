@@ -1443,7 +1443,7 @@ let a = {
 //   );
  
 try {
-    const filebuff = JSON.parse(redisClient.get(timestamp.toString())).buffer
+    const filebuff = JSON.parse(await redisClient.get(timestamp.toString())).buffer
     // readJSONFile(filePath).buffer;
     let bufferData = Buffer.from(filebuff, "base64");
     let filePath2 = path.join(
