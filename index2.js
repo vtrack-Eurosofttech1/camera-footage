@@ -13,6 +13,7 @@ const { exec } = require("child_process");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 const emitdatatoSocket = require("./socket.js");
 const { checkVideoPlayback, videoConversion } = require("./nn.js");
+const { processVideoFile, processImageFile } = require("./setparamsofS3.js");
 process.setMaxListeners(12);
 
 /* dbg.logAndPrint(
@@ -281,6 +282,7 @@ function formatBufferToHex(buffer) {
 //     const startIndex = metadata.timestamp.indexOf('(') + 1;
 // const endIndex = metadata.timestamp.indexOf(')');
 //     let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
+ 
 //     // getUnixTimestamp(metadata.timestamp);
    
 //     console.log("timestamp", timestamp)
@@ -508,9 +510,120 @@ function formatBufferToHex(buffer) {
 //       }
 //     }
 //   }
-function onConnClose() {
+const readJSONFile = (filePath) => {
+  if (fs.existsSync(filePath)) {
+      const data = fs.readFileSync(filePath, 'utf-8');
+      return JSON.parse(data);
+  }
+  return null; // Return null if the file doesn't exist
+};
+
+// Function to write the JSON file
+const writeJSONFile = (filePath, data) => {
+ // console.log("ss",filePath, data)
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+};
+// Function to update the JSON file with new values
+const updateJSONFile = (newValues,filePath) => {
+  // Read the existing data
+  const jsonData = readJSONFile(filePath) || {}; // Read existing data or use an empty object
+  let newObj = {
+    IMEI: newValues.imei || jsonData.imei,
+    timestamp: newValues.timestamp || jsonData.timestamp,
+    totalPackages: (jsonData.totalPackages || 0) + (newValues.totalPackages || 0),
+    receivedPackages: (jsonData.receivedPackages || 0) + (newValues.receivedPackages || 0),
+    lastCrc: newValues.lastCrc || jsonData.lastCrc,
+    uploadedToS3: newValues.uploadedToS3 || jsonData.uploadedToS3,
+    ReceivedAllPackets: newValues.ReceivedAllPackets || jsonData.ReceivedAllPackets        ,
+    lastReceivedPackages: (jsonData.lastReceivedPackages || 0) + (newValues.lastReceivedPackages || 0),
+    camera_type: newValues.camera_type || jsonData.camera_type,
+    clientId: newValues.clientId || jsonData.clientId,
+    vehicle: newValues.vehicle || jsonData.vehicle,
+    framerate: newValues.framerate || jsonData.framerate,
+  }
+  Object.assign(jsonData,newObj)
+  // Update attributes with new values
+  // jsonData.IMEI = newValues.imei || jsonData.imei;
+  // jsonData.timestamp = newValues.timestamp || jsonData.timestamp;
+  // jsonData.totalPackages = (jsonData.totalPackages || 0) + (newValues.totalPackages || 0);
+  // jsonData.receivedPackages = (jsonData.receivedPackages || 0) + (newValues.receivedPackages || 0);
+  // jsonData.lastCrc = newValues.lastCrc || jsonData.lastCrc;
+  // jsonData.uploadedToS3 = newValues.uploadedToS3 || jsonData.uploadedToS3;
+  // jsonData.ReceivedAllPackets = newValues.ReceivedAllPackets || jsonData.ReceivedAllPackets;         
+  // jsonData.lastReceivedPackages = (jsonData.lastReceivedPackages || 0) + (newValues.lastReceivedPackages || 0);
+  // jsonData.camera_type = newValues.camera_type || jsonData.camera_type;
+  // jsonData.clientId = newValues.clientId || jsonData.clientId;
+  // jsonData.vehicle = newValues.vehicle || jsonData.vehicle;
+  // jsonData.framerate = newValues.framerate || jsonData.framerate
+  // Append new values to the buffer
+  if (newValues.buffer) {
+      jsonData.buffer = jsonData.buffer || []; // Initialize buffer if it doesn't exist
+      jsonData.buffer.push(...newValues.buffer); // Spread new values into the existing buffer
+  }
+  if (newValues.packets && Array.isArray(newValues.packets)) {
+      jsonData.packets = jsonData.packets || []; // Initialize packets if it doesn't exist
+      jsonData.packets.push(...newValues.packets); // Spread new packet objects into the existing packets array
+  }
+  // Write the updated data back to the file
+  writeJSONFile(filePath, jsonData);
+};
+
+
+ function onConnClose() {
+  const startIndex = metadata.timestamp.indexOf('(') + 1;
+  const endIndex = metadata.timestamp.indexOf(')');
+      let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
+      var frameratevideo = metadata.framerate
+  let filePath 
+  try {
+    filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+ 
+  } catch (error) {
+    console.log(":", error)
+  }
+    let filepath1
+ 
+    // getUnixTimestamp(metadata.timestamp);
+   
+    console.log("timestamp", timestamp)
+  try {
+    filepath1 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + `${device_info.getExtension()}`);
+  } catch (error) {
     
-}
+  }
+  let jsondata = readJSONFile(filePath)
+  if(jsondata?.uploadedToS3 == false && !fs.existsSync(filepath1)){
+    try {
+      const filebuff = readJSONFile(filePath).buffer;
+      let bufferData = Buffer.from(filebuff, "base64");
+      let filePath2 = path.join(
+          __dirname,
+          device_info.getDeviceDirectory(),
+          /* device_info.getCurrentFilename() */ `${timestamp}` +
+            device_info.getExtension()
+        );
+      fs.writeFile(filePath2, bufferData, (err) => {
+          if (err) {
+              console.error("Error writing file:", err);
+          } else {
+             // console.log("The file has been saved at:", file1Path);
+              if (device_info.getExtension() == ".h265") {
+                processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+                }
+                else {
+                    processImageFile(`${timestamp}`,device_info)
+                }
+          }
+        });
+  
+  
+    
+  } catch (error) {
+    console.log("error in",error)
+  }
+  }
+    
+ }
   function onConnError(err) {
    // dbg.logAndPrint("Connection " + remoteAddress + " error: " + err.message);
    // console.log("onConnError");

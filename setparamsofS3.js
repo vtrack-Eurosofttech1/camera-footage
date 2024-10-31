@@ -15,26 +15,41 @@ const readJSONFile = (filePath) => {
 
 // Function to write the JSON file
 const writeJSONFile = (filePath, data) => {
+ // console.log("ss",filePath, data)
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
 };
 // Function to update the JSON file with new values
 const updateJSONFile = (newValues,filePath) => {
   // Read the existing data
   const jsonData = readJSONFile(filePath) || {}; // Read existing data or use an empty object
-
+  let newObj = {
+    IMEI: newValues.imei || jsonData.imei,
+    timestamp: newValues.timestamp || jsonData.timestamp,
+    totalPackages: (jsonData.totalPackages || 0) + (newValues.totalPackages || 0),
+    receivedPackages: (jsonData.receivedPackages || 0) + (newValues.receivedPackages || 0),
+    lastCrc: newValues.lastCrc || jsonData.lastCrc,
+    uploadedToS3: newValues.uploadedToS3 || jsonData.uploadedToS3,
+    ReceivedAllPackets: newValues.ReceivedAllPackets || jsonData.ReceivedAllPackets        ,
+    lastReceivedPackages: (jsonData.lastReceivedPackages || 0) + (newValues.lastReceivedPackages || 0),
+    camera_type: newValues.camera_type || jsonData.camera_type,
+    clientId: newValues.clientId || jsonData.clientId,
+    vehicle: newValues.vehicle || jsonData.vehicle,
+    framerate: newValues.framerate || jsonData.framerate,
+  }
+  Object.assign(jsonData,newObj)
   // Update attributes with new values
-  jsonData.IMEI = newValues.imei || jsonData.imei;
-  jsonData.timestamp = newValues.timestamp || jsonData.timestamp;
-  jsonData.totalPackages = (jsonData.totalPackages || 0) + (newValues.totalPackages || 0);
-  jsonData.receivedPackages = (jsonData.receivedPackages || 0) + (newValues.receivedPackages || 0);
-  jsonData.lastCrc = newValues.lastCrc || jsonData.lastCrc;
-  jsonData.uploadedToS3 = newValues.uploadedToS3 || jsonData.uploadedToS3;
-  jsonData.ReceivedAllPackets = newValues.ReceivedAllPackets || jsonData.ReceivedAllPackets;         
-  jsonData.lastReceivedPackages = (jsonData.lastReceivedPackages || 0) + (newValues.lastReceivedPackages || 0);
-  jsonData.camera_type = newValues.camera_type || jsonData.camera_type;
-  jsonData.clientId = newValues.clientId || jsonData.clientId;
-  jsonData.vehicle = newValues.vehicle || jsonData.vehicle;
-  jsonData.framerate = newValues.framerate || jsonData.framerate
+  // jsonData.IMEI = newValues.imei || jsonData.imei;
+  // jsonData.timestamp = newValues.timestamp || jsonData.timestamp;
+  // jsonData.totalPackages = (jsonData.totalPackages || 0) + (newValues.totalPackages || 0);
+  // jsonData.receivedPackages = (jsonData.receivedPackages || 0) + (newValues.receivedPackages || 0);
+  // jsonData.lastCrc = newValues.lastCrc || jsonData.lastCrc;
+  // jsonData.uploadedToS3 = newValues.uploadedToS3 || jsonData.uploadedToS3;
+  // jsonData.ReceivedAllPackets = newValues.ReceivedAllPackets || jsonData.ReceivedAllPackets;         
+  // jsonData.lastReceivedPackages = (jsonData.lastReceivedPackages || 0) + (newValues.lastReceivedPackages || 0);
+  // jsonData.camera_type = newValues.camera_type || jsonData.camera_type;
+  // jsonData.clientId = newValues.clientId || jsonData.clientId;
+  // jsonData.vehicle = newValues.vehicle || jsonData.vehicle;
+  // jsonData.framerate = newValues.framerate || jsonData.framerate
   // Append new values to the buffer
   if (newValues.buffer) {
       jsonData.buffer = jsonData.buffer || []; // Initialize buffer if it doesn't exist
@@ -89,7 +104,15 @@ console.log("convert", d);
           filePath: filePath,
           cameraType: getFileToDL
         });
-    
+        device_info.setUploadedToS3(true);
+        let filePath1 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+        
+        let newData = {
+            
+          uploadedToS3: true,
+          
+          }
+          await updateJSONFile(newData, filePath1);
         device_info.setUploadedToS3(true);
   });
     } catch (e) {
