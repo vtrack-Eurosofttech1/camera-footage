@@ -13,6 +13,7 @@ const { exec } = require("child_process");
 const { ConvertVideoFile } = require("./ConvertVideoFile.js");
 const emitdatatoSocket = require("./socket.js");
 const { checkVideoPlayback, videoConversion } = require("./nn.js");
+const redisConnction =require("./redisHelper.js")
 process.setMaxListeners(12);
 
 /* dbg.logAndPrint(
@@ -179,8 +180,9 @@ function formatBufferToHex(buffer) {
 }
 
 
-  function onConnData(data) {
+  async function onConnData(data) {
     lastActivityTime = Date.now();
+    const redisClient = await redisConnction()
 //       const bufferData = Buffer.isBuffer(data) ? data : Buffer.from(data);
 
 //       const dataLength = bufferData.length;
@@ -252,7 +254,8 @@ function formatBufferToHex(buffer) {
         metadata,
         progress_bar,
         camera_option,
-        metadata_option
+        metadata_option,
+        redisClient
       );
       if (current_state == protocol.fsm_state.REPEAT_PACKET) {
      

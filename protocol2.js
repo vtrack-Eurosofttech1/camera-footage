@@ -759,38 +759,47 @@ const writeJSONFile = (filePath, data) => {
 };
 
 // Function to update the JSON file with new values
-const updateJSONFile = (newValues, filePath) => {
-    return readJSONFile(filePath)
-        .then(jsonData => {
-            jsonData = jsonData || {}; // Use an empty object if no data is returned
+const updateJSONFile = async(newValues, filePath,redisClient) => {
+    // return readJSONFile(filePath)
+    //     .then(jsonData => {
+    //         jsonData = jsonData || {}; // Use an empty object if no data is returned
 
-            // Update attributes with new values
-            jsonData.IMEI = newValues.imei || jsonData.imei;
-            jsonData.timestamp = newValues.timestamp || jsonData.timestamp;
-            jsonData.totalPackages = (jsonData.totalPackages || 0) + (newValues.totalPackages || 0);
-            jsonData.receivedPackages = (jsonData.receivedPackages || 0) + (newValues.receivedPackages || 0);
-            jsonData.lastCrc = newValues.lastCrc || jsonData.lastCrc;
-            jsonData.uploadedToS3 = newValues.uploadedToS3 || jsonData.uploadedToS3;
-            jsonData.ReceivedAllPackets = newValues.ReceivedAllPackets || jsonData.ReceivedAllPackets;         
-            jsonData.lastReceivedPackages = (jsonData.lastReceivedPackages || 0) + (newValues.lastReceivedPackages || 0);
-            jsonData.camera_type = newValues.camera_type || jsonData.camera_type;
-            jsonData.clientId = newValues.clientId || jsonData.clientId;
-            jsonData.vehicle = newValues.vehicle || jsonData.vehicle;
-            jsonData.framerate = newValues.framerate || jsonData.framerate;
+    //         // Update attributes with new values
+    //         jsonData.IMEI = newValues.imei || jsonData.imei;
+    //         jsonData.timestamp = newValues.timestamp || jsonData.timestamp;
+    //         jsonData.totalPackages = (jsonData.totalPackages || 0) + (newValues.totalPackages || 0);
+    //         jsonData.receivedPackages = (jsonData.receivedPackages || 0) + (newValues.receivedPackages || 0);
+    //         jsonData.lastCrc = newValues.lastCrc || jsonData.lastCrc;
+    //         jsonData.uploadedToS3 = newValues.uploadedToS3 || jsonData.uploadedToS3;
+    //         jsonData.ReceivedAllPackets = newValues.ReceivedAllPackets || jsonData.ReceivedAllPackets;         
+    //         jsonData.lastReceivedPackages = (jsonData.lastReceivedPackages || 0) + (newValues.lastReceivedPackages || 0);
+    //         jsonData.camera_type = newValues.camera_type || jsonData.camera_type;
+    //         jsonData.clientId = newValues.clientId || jsonData.clientId;
+    //         jsonData.vehicle = newValues.vehicle || jsonData.vehicle;
+    //         jsonData.framerate = newValues.framerate || jsonData.framerate;
 
-            // Append new values to the buffer
-            if (newValues.buffer) {
-                jsonData.buffer = jsonData.buffer || []; // Initialize buffer if it doesn't exist
-                jsonData.buffer.push(...newValues.buffer); // Spread new values into the existing buffer
-            }
-            if (newValues.packets) {
-                jsonData.packets = jsonData.packets || []; // Initialize packets if it doesn't exist
-                jsonData.packets.push(...newValues.packets); // Spread new packet data into the existing packets
-            }
+    //         // Append new values to the buffer
+    //         if (newValues.buffer) {
+    //             jsonData.buffer = jsonData.buffer || []; // Initialize buffer if it doesn't exist
+    //             jsonData.buffer.push(...newValues.buffer); // Spread new values into the existing buffer
+    //         }
+    //         if (newValues.packets) {
+    //             jsonData.packets = jsonData.packets || []; // Initialize packets if it doesn't exist
+    //             jsonData.packets.push(...newValues.packets); // Spread new packet data into the existing packets
+    //         }
 
-            // Write the updated data back to the file
-            return writeJSONFile(filePath, jsonData);
-        });
+    //         // Write the updated data back to the file
+    //         return writeJSONFile(filePath, jsonData);
+    //     });
+    let b =JSON.parse(await redisClient.get(filePath))
+    if(!b){
+      redisClient.set(filePath,JSON.stringify(newValues))
+    }else{
+      b.buffer.push(...newValues.buffer)
+      redisClient.set(filePath,JSON.stringify(b))
+
+    }
+
 };
 
 
@@ -804,7 +813,8 @@ exports.run_fsm = async function (
   metadata,
   progress_bar,
   camera_option,
-  metadata_option
+  metadata_option,
+  redisClient
 ) {
   let file_available = false;
 
@@ -900,7 +910,7 @@ console.log("timestamp",timestamp)
           let total_pkg = device_info.getTotalPackages();
           progress_bar.start(total_pkg, 0);
           emitdatatoSocket(device_info.getDeviceInfoData());
-          let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+         // let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
           let newData = {
             IMEI: device_info.getDeviceDirectory().split("/").pop(),
             timestamp: timestamp,
@@ -916,13 +926,8 @@ console.log("timestamp",timestamp)
             framerate: framerate,
             buffer: [] 
           }
-          updateJSONFile(newValues, filePath)
-    .then(() => {
-        console.log('File updated successfully');
-    })
-    .catch(error => {
-        console.error('Error updating file:', error);
-    });
+          updateJSONFile(newData, timestamp,redisClient)
+   
 
   }
          } catch (error) {
@@ -1015,7 +1020,7 @@ let a = {
     data: Array.from(raw_file),
     Timestamp: Date.now()
 }
-        let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+        //let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
           let newData = {
             receivedPackages: 1,
             lastcrc: actual_crc,
@@ -1024,13 +1029,8 @@ let a = {
             packets: a
            
           }
-          updateJSONFile(newValues, filePath)
-    .then(() => {
-        console.log('File updated successfully');
-    })
-    .catch(error => {
-        console.error('Error updating file:', error);
-    });
+          updateJSONFile(newData, timestamp,redisClient)
+   
 
       
 
@@ -1042,19 +1042,14 @@ let a = {
         device_info.first_sync_received = false;
         device_info.sync_received == false;
   
-        let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+       // let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
         let newData = {
             
             ReceivedAllPackets: true,
           
           }
-          updateJSONFile(newValues, filePath)
-          .then(() => {
-              console.log('File updated successfully');
-          })
-          .catch(error => {
-              console.error('Error updating file:', error);
-          });
+          updateJSONFile(newData, timestamp,redisClient)
+         
       
         current_state = FSM_STATE.FINISH_RECEIVING;
       }
@@ -1441,7 +1436,8 @@ let a = {
 //   );
   if(fs.existsSync(filePath)){ 
 try {
-    const filebuff = readJSONFile(filePath).buffer;
+    const filebuff = JSON.parse(redisClient.get(timestamp)).buffer
+    // readJSONFile(filePath).buffer;
     let bufferData = Buffer.from(filebuff, "base64");
     let filePath2 = path.join(
         __dirname,
@@ -1458,7 +1454,7 @@ try {
               processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
               }
               else {
-                  processImageFile(`${timestamp}`,device_info)
+                  processImageFile(`${timestamp}`,device_info, redisClient)
               }
         }
       });

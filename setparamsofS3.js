@@ -108,7 +108,7 @@ console.log("convert", d);
   }
 
   
-  async function processImageFile(timestamp,device_info) {
+  async function processImageFile(timestamp,device_info,redisClient) {
     // let device_info = new protocol.DeviceDescriptor();
     const IMEI = device_info.getDeviceDirectory();
   
