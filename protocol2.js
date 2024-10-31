@@ -1458,7 +1458,7 @@ try {
         } else {
            // console.log("The file has been saved at:", file1Path);
             if (device_info.getExtension() == ".h265") {
-              processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+              processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info,redisClient)
               }
               else {
                   processImageFile(`${timestamp}`,device_info, redisClient)

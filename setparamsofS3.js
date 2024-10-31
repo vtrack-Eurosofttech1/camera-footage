@@ -87,7 +87,14 @@ console.log("convert", d);
           filePath: filePath,
           cameraType: getFileToDL
         });
-    
+        let newData = {
+            
+          uploadedToS3: true,
+          
+          }
+          await updateJSONFile(newData, timestamp, redisClient);
+          await saveDataToJson(device_info, timestamp, redisClient)
+
         device_info.setUploadedToS3(true);
   });
     } catch (e) {
