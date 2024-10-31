@@ -21,7 +21,13 @@ httpsServer.listen(WEB_SERVER_PORT, () => {
 io.listen(httpsServer)
 const clients = new Map()
 io.on("connection", (socket) => {
-    console.log("A client connected:", socket.id,socket.handshake.query);
+    // let clientIp = socket.handshake.address; // Get the client's IP address
+    // if (clientIp.startsWith("::ffff:")) {
+    //     clientIp = clientIp.slice(7); // Remove the IPv6 prefix
+    // }
+    // console.log("A client connected:", socket.id, "IP:", clientIp, socket.handshake.query);
+
+    console.log("A client connected:", socket.id,socket.handshake.headers.origin);
     setTimeout(()=>{
 
     },10000)
@@ -45,7 +51,7 @@ function emitdatatoSocket(payload) {
         //console.log(sockets)
         
         sockets.forEach((socket) => {
-            console.log("====", socket.handshake.headers.origin)
+           // console.log("====", socket.handshake.headers.origin)
             if (clientId == socket.handshake.query.clientId) {
                
             //    let progress = (payload.received_packages/payload.total_packages)*100

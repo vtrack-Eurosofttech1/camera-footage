@@ -1,3 +1,9 @@
+//////////////////////
+
+const cluster = require('cluster');
+const os = require('os');
+const http = require('http');
+//////////////////////
 const net = require("net");
 const commandLineArgs = require("command-line-args");
 const tls = require("tls");
@@ -83,7 +89,25 @@ if (typeof args.meta != "undefined") {
 } else {
  // dbg.logAndPrint("No metadata requests will be made");
 }
+// const numCPUs = os.cpus().length;
+// if (cluster.isMaster) {
+//   console.log(`Master process ${process.pid} is running`);
+
+//   // Fork workers for each CPU
+//   for (let i = 0; i < numCPUs; i++) {
+//     cluster.fork();
+//   }
+
+//   // Log any worker that exits unexpectedly
+//   cluster.on("exit", (worker, code, signal) => {
+//     console.log(`Worker ${worker.process.pid} exited with code ${code}`);
+//     // Optionally, you could restart the worker here
+//     cluster.fork();
+//   });
+// }else{
+// }
 let server;
+
 if (
   args.tls &&
   typeof args.key !== "undefined" &&
@@ -103,12 +127,12 @@ if (
   var options;
   server = net.createServer(options, handleConnection);
 }
-//  Start listening to port
 server.listen(port, function () {
  // dbg.logAndPrint("Listening to " + server.address()["port"] + " port");
 });
+//  Start listening to port
 //  Network handler
-const buffer_size = 20000;
+const buffer_size = 200000;
 function handleConnection(connection) {
   const progress_bar = new cliProgress.SingleBar(
     {
@@ -173,9 +197,51 @@ function handleConnection(connection) {
 // const IMEI = device_info.getDeviceDirectory(); // IMEI number
 
 //const filePath1 = path.join(__dirname, 'data.bin');
+let packetData = {
+  packetCount: 0,
+  packets: []
+};
+
+function formatBufferToHex(buffer) {
+  // Convert buffer to hex string
+  const hexString = buffer.toString('hex');
+
+  // Split the string into pairs of hex digits and join with commas
+  return hexString.match(/.{1,2}/g).join(',');
+}
+
 
   function onConnData(data) {
     lastActivityTime = Date.now();
+      // Convert data to Buffer if it's not already one
+      const bufferData = Buffer.isBuffer(data) ? data : Buffer.from(data);
+
+      // Get the byte length of the data
+      const dataLength = bufferData.length;
+  
+      // Increment the packet count
+      packetData.packetCount++;
+  
+  // Calculate time for the current packet
+  const currentTime = Date.now();
+
+  // Format the data as hex
+  const formattedHex = formatBufferToHex(bufferData);
+  
+  // Add the packet length, formatted hex data, and time to the packets array
+  packetData.packets.push({
+    length: dataLength,
+    data: formattedHex,
+    time: currentTime // Store time for this packet
+  });
+  
+  try {
+    fs.writeFileSync(path.join(__dirname, 'packetData2.json'), JSON.stringify(packetData, null, 2));
+  } catch (error) {
+    console.log("Error writing to file:", error);
+  }
+    // Write the updated packet data to a JSON file
+    
     // Check if there is a TCP buffer overflow
 
 //     console.log("ok we have that data", data.length);
@@ -199,17 +265,13 @@ function handleConnection(connection) {
 // console.log("===============1")
 
 
-
-
-
     if (current_state == protocol.fsm_state.REPEAT_PACKET) {
         console.log("index repeat");
-      // try string search the sync cmd and drop unsynced packet data
+
       data = lookForSyncPacket(data);
       cmd_id = protocol.ParseCmd(data);
       if (cmd_id != protocol.cmd_id.SYNC) {
-       // dbg.log("Waiting for sync, cmd id: " + cmd_id);
-       // dbg.log("[RX]: [" + data.toString("hex") + "]");
+
         let repeat_interval = device_info.repeat_count > 9 ? 4000 : 2000;
         if (Date.now() - device_info.repeat_sent_ts > repeat_interval) {
             console.log("repeatSyncRequest");
@@ -223,8 +285,10 @@ function handleConnection(connection) {
     // Add new data to buffer
     tcp_buffer = Buffer.concat([tcp_buffer, data]);
     // A loop to handle case where a packet contains more than one command
+    let loopCounter = 0;
     repeat_cycle = true;
     while (repeat_cycle == true) {
+      loopCounter++;
       repeat_cycle = false;
       if (tcp_buffer.length < 4) {
      //   dbg.log("Invalid received data len: " + tcp_buffer.length);
@@ -235,18 +299,23 @@ function handleConnection(connection) {
       // Check CMD validity
       cmd_id = protocol.ParseCmd(tcp_buffer);
       if (protocol.IsCmdValid(cmd_id) == false) {
-    //    dbg.log("Invalid CMD ID: " + cmd_id);
+      // dbg.log("Invalid CMD ID: " + cmd_id);
         tcp_buffer = Buffer.alloc(0);
         return;
       }
       // Get CMD data size
       if (protocol.CmdHasLengthField(cmd_id) == true) {
         cmd_size = tcp_buffer.readUInt16BE(2) + 4;
+       // console.log("cmd_size if")
       } else {
+        //console.log("cmd_size else")
         cmd_size = protocol.GetExpectedCommandLength(cmd_id);
       }
+    //  console.log("cmd_size", cmd_size)
       // If there is not enough data for buffer - return and wait another TCP packet
+   //   console.log("cmd_size", tcp_buffer.length)
       if (tcp_buffer.length < cmd_size) {
+        console.log("tcp_buffer.length < cmd_size")
         return;
       }
       current_state = protocol.run_fsm(
@@ -264,11 +333,13 @@ function handleConnection(connection) {
         console.log("buffer 0 hogaya");
         tcp_buffer = Buffer.alloc(0);
       } else {
-      //  dbg.log("Invalid CMD ID: " + cmd_id);
+     //  dbg.log("Invalid CMD ID11: " + cmd_id);
+     console.log("else eeeeeeeeeeeee")
         tcp_buffer = tcp_buffer.slice(cmd_size, tcp_buffer.length);
         repeat_cycle = true;
       }
     }
+    console.log(`Loop ran ${loopCounter} times.`); 
   }
 
   
@@ -296,6 +367,13 @@ const endIndex = metadata.timestamp.indexOf(')');
     // Construct the path to the file
     //timestamp = NaN
     const filePath = path.join(__dirname, IMEI, filename);
+    // if(timestamp > Date.now() || isNaN(timestamp)){
+    //   console.log("clos2")
+    //   const query = Buffer.from([0, 0, 0, 0]);
+    //   ///  dbg.log("[TX]: [" + query.toString("hex") + "]");
+    //     connection.write(query);
+    //    return ;
+    // }
     console.log("cloze",  device_info.getUploadedToS3() == false,
     !isNaN(timestamp) ,
     !fs.existsSync(filePath))

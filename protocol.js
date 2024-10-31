@@ -747,6 +747,20 @@ function SaveToFileJSON(jsonString, path) {
 function getUnixTimestamp(dateString) {
   return new Date(dateString).getTime();
 }
+function formatBufferToHex(buffer) {
+  // Convert buffer to hex string
+  const hexString = buffer.toString('hex');
+
+  // Split the string into pairs of hex digits and join with commas
+  return hexString.match(/.{1,2}/g).join(',');
+}
+
+let packetData = {
+  packetCount: 0,
+  packets: [],
+  commands: []
+};
+
 
 exports.run_fsm = async function (
   current_state,
@@ -768,11 +782,20 @@ const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 1
 var pkgscount  ;
 //const device = new Device();
 device_info.setnewtimestamp(timestamp)
+// if(timestamp > Date.now() ){
+//   console.log("clos")
+//   const query = Buffer.from([0, 0, 0, 0]);
+//   ///  dbg.log("[TX]: [" + query.toString("hex") + "]");
+//     connection.write(query);
+//    return current_state = FSM_STATE.END;
+// }
 console.log("timestamp", timestamp)
   var frameratevideo = metadata.framerate
 
   switch (cmd_id) {
     case CMD_ID.START: { //console.log("start ")
+console.log("cmd start");
+
       dbg.logAndPrint("cmd start");
       switch (device_info.getCameraType()) {
         case CAMERA_TYPE.DUALCAM: {
@@ -854,6 +877,15 @@ console.log("timestamp", timestamp)
     query.writeUInt32BE(offset, 4);
    // console.log("??",   query.writeUInt32BE(offset, 4), offset)
           connection.write(query);
+          try {
+            const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+            packetData.commands.push({ command: hexString });
+            // Write the updated packet data to a JSON file
+            fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+        } catch (error) {
+            console.log("Error writing to file:", error);
+        }
          // dbg.log("[TX]: [" + query.toString("hex") + "]");
           current_state = FSM_STATE.WAIT_FOR_CMD;
           let total_pkg = device_info.getTotalPackages()
@@ -920,6 +952,15 @@ else{
           // );
           const query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
           connection.write(query);
+          try {
+            const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+            packetData.commands.push({ command: hexString });
+           // Write the updated packet data to a JSON file
+           fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+       } catch (error) {
+           console.log("Error writing to file:", error);
+       }
          // dbg.log("[TX]: [" + query.toString("hex") + "]");
           current_state = FSM_STATE.WAIT_FOR_CMD;
           let total_pkg = device_info.getTotalPackages();
@@ -935,7 +976,7 @@ else{
       break;
     }
     case CMD_ID.SYNC: { //console.log("sync")
-      dbg.logAndPrint("cmd sync");
+      console.log("cmd sync");
       device_info.sync_received = true;
       device_info.setLastCRC(0);
            let sync_packet = data_buffer.readUInt32BE(4);
@@ -985,7 +1026,7 @@ else{
 
     case CMD_ID.DATA: {
      // console.log("=data")
-      dbg.logAndPrint("cmd data");
+     console.log("cmd data");
       // dbg.logAndPrint("lat"+  metadata.getLatitude()+ "lng"
       // + metadata.getLongitude()
       //     )
@@ -997,7 +1038,7 @@ else{
       /* Read data length minus CRC */
       let data_len = data_buffer.readUInt16BE(2) - 2;
     //  console.log("data_len", data_len)
-    dbg.logAndPrint("data_len " +  data_len)
+    dbg.logAndPrint("data_len " +  data_len, "data_buffer", data_buffer.length)
       /* Get raw file data */
       let raw_file = data_buffer.slice(4, 4 + data_len);
       dbg.logAndPrint("raw_file " +  raw_file.length)
@@ -1243,11 +1284,14 @@ else{
         device_info.sync_received == false;
         current_state = FSM_STATE.FINISH_RECEIVING;
       }
+    //   current_state.then(value => {
+    //     console.log("Resolved value:", value); // This will log "Resolved value: 0"
+    // });
       break;
     }
 
     case CMD_ID.METADATA: {
-      dbg.logAndPrint("cmd METADATA");
+      console.log("cmd METADATA");
       /* Read data length minus CRC */
       let data_len = data_buffer.readUInt16BE(2);
       /* Get raw file data */
@@ -1284,7 +1328,7 @@ else{
       break;
     }
     case CMD_ID.FILEPATH: {
-      dbg.logAndPrint("cmd FILEPATH");
+      console.log("cmd FILEPATH");
       let path = ParseFilePath(data_buffer);
       if (path.search("mdas9") > -1) {
         //dbg.logAndPrint("Camera: ADAS");
@@ -1336,7 +1380,7 @@ else{
       break;
     }
     case CMD_ID.ENHANCED_DATA: {
-      dbg.logAndPrint("cmd ENHANCED_DATA");
+      console.log("cmd ENHANCED_DATA");
       if (device_info.sync_received == false) {
         current_state = FSM_STATE.WAIT_FOR_CMD;
         break;
@@ -1396,7 +1440,7 @@ else{
       break;
     }
     case CMD_ID.COMPLETE: {
-      dbg.logAndPrint("cmd COMPLETE");
+      console.log("cmd COMPLETE");
       const status_byte = data_buffer.readUInt32BE(4);
       if (status_byte > 0) {
         // dbg.logAndPrint(
@@ -1410,7 +1454,8 @@ else{
     }
   }
 
-  if (current_state == FSM_STATE.INIT) {console.log("init")
+  if (current_state == FSM_STATE.INIT) {
+    console.log("FSM_STATE.INIT")
     dbg.logAndPrint("FSM_STATE.INIT");
     //Create dir with device IMEI if it doesn't exist
     if (!fs.existsSync("downloads")) {
@@ -1524,9 +1569,19 @@ else{
       if (option_byte & 0x02) {
      //   dbg.logAndPrint("File available! Sending file path request.");
         const query = Buffer.from([0, 12, 0, 2, 0, 0]);
+        
        // dbg.log("[TX]: [" + query.toString("hex") + "]");
         console.log("[TX]: [" + query.toString("hex") + "]")
         connection.write(query);
+        try {
+          const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+          packetData.commands.push({ command: hexString });
+         // Write the updated packet data to a JSON file
+         fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+     } catch (error) {
+         console.log("Error writing to file:", error);
+     }
         current_state = FSM_STATE.WAIT_FOR_CMD;
         file_available = true;
       }
@@ -1652,6 +1707,7 @@ else{
   }
   if (current_state == FSM_STATE.FINISH_RECEIVING) {
     dbg.logAndPrint("FSM_STATE.FINISH_RECEIVING");
+    console.log("FSM_STATE.FINISH_RECEIVING")
     progress_bar.stop();
     emitdatatoSocket(device_info.getDeviceInfoData());
 
@@ -1808,15 +1864,27 @@ else {
     //s3
   }
   if (current_state == FSM_STATE.SEND_FILEPATH) {
+    console.log("FSM_STATE.SEND_FILEPATH")
+    
     dbg.logAndPrint("FSM_STATE.SEND_FILEPATH");
  //   dbg.logAndPrint("Requesting file...");
     device_info.clearBuffer();
     device_info.setLastCRC(0);
     if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
       const query = Buffer.from([0, 8, 0, 7, 0, 0, 0, 0, 0, 0, 0]);
+
       query.write(device_info.getFileToDL(), 4);
    //   dbg.log("[TX]: [" + query.toString("hex") + "]");
       connection.write(query);
+      try {
+        const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+        packetData.commands.push({ command: hexString });
+       // Write the updated packet data to a JSON file
+       fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+   } catch (error) {
+       console.log("Error writing to file:", error);
+   }
     }
     if (
       device_info.getCameraType() == CAMERA_TYPE.ADAS ||
@@ -1833,6 +1901,8 @@ else {
   }
   if (current_state == FSM_STATE.REPEAT_PACKET) {
     dbg.logAndPrint("FSM_STATE.REPEAT_PACKET");
+    console.log("FSM_STATE.REPEAT_PACKET")
+    
     device_info.sync_received = false;
     let filePath2 
     try {
@@ -1869,6 +1939,15 @@ else {
      offset = offsetNum.toString()
     }
     query.writeUInt32BE(offset, 4);
+    try {
+      const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+      packetData.commands.push({ command: hexString });
+     // Write the updated packet data to a JSON file
+     fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+ } catch (error) {
+     console.log("Error writing to file:", error);
+ }
     // dbg.logAndPrint(
     //   "Requesting for a repeat of last packet: " + offset.toString()
     // );
@@ -1894,6 +1973,15 @@ else {
      offset = offsetNum.toString()
     }
     query.writeUInt32BE(offset, 4);
+    try {
+      const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+      packetData.commands.push({ command: hexString });
+     // Write the updated packet data to a JSON file
+     fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+ } catch (error) {
+     console.log("Error writing to file:", error);
+ }
     // dbg.logAndPrint(
     //   "Requesting for a repeat of last packet: " + offset.toString()
     // );
@@ -1908,6 +1996,7 @@ else {
   }
   if (current_state == FSM_STATE.SEND_METADATA_REQUEST) {
   //  dbg.logAndPrint("Requesting metadata...");
+  console.log("FSM_STATE.SEND_METADATA_REQUEST")
   dbg.logAndPrint("FSM_STATE.SEND_METADATA_REQUEST");
     let query = 0;
     if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
@@ -1918,16 +2007,35 @@ else {
     }
   //  dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
+    try {
+      const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+    packetData.commands.push({ command: hexString });
+     // Write the updated packet data to a JSON file
+     fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+ } catch (error) {
+     console.log("Error writing to file:", error);
+ }
     current_state = FSM_STATE.WAIT_FOR_CMD;
   }
   if (current_state == FSM_STATE.SEND_COMPLETE) {
    // dbg.logAndPrint("Completing upload");
+  console.log("FSM_STATE.SEND_COMPLETE")
+
    dbg.logAndPrint("FSM_STATE.SEND_COMPLETE");
     // Close session
     const query = Buffer.from([0, 5, 0, 4, 0, 0, 0, 0]);
    // dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
+    try {
+      const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
 
+      packetData.commands.push({ command: hexString });
+     // Write the updated packet data to a JSON file
+     fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+ } catch (error) {
+     console.log("Error writing to file:", error);
+ }
     device_info.setTotalPackages(0);
     device_info.resetReceivedPackageCnt();
     device_info.setLastCRC(0);
@@ -1938,6 +2046,7 @@ else {
     current_state = FSM_STATE.END;
   }
   if (current_state == FSM_STATE.LOOK_FOR_FILES) {
+    console.log("FSM_STATE.LOOK_FOR_FILES")
     dbg.logAndPrint("FSM_STATE.LOOK_FOR_FILES");
     // if (device_info.getExtension() == ".h265") {
     // processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() )
@@ -2048,14 +2157,33 @@ fs.readFile(filePath, (err, data) => {
     const query = Buffer.from([0, 9]);
    // dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
+    try {
+      const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+    packetData.commands.push({ command: hexString });
+     // Write the updated packet data to a JSON file
+     fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+ } catch (error) {
+     console.log("Error writing to file:", error);
+ }
     current_state = FSM_STATE.INIT;
   }
   if (current_state == FSM_STATE.SEND_END) {
     dbg.logAndPrint("FSM_STATE.LOOK_FOR_FILES");
+    console.log("FSM_STATE.SEND_END")
   ///  dbg.logAndPrint("Closing session");
     const query = Buffer.from([0, 0, 0, 0]);
   ///  dbg.log("[TX]: [" + query.toString("hex") + "]");
     connection.write(query);
+    try {
+      const hexString = Array.from(query).map(byte => byte.toString(16).padStart(2, '0')).join(',');
+
+    packetData.commands.push({ command: hexString });
+     // Write the updated packet data to a JSON file
+     fs.writeFileSync(path.join(__dirname, 'packetData3.json'), JSON.stringify(packetData, null, 2));
+ } catch (error) {
+     console.log("Error writing to file:", error);
+ }
     current_state = FSM_STATE.END;
   }
   return current_state;
