@@ -1027,8 +1027,9 @@ let a = {
     Timestamp: Date.now()
 }
         //let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+        let val = JSON.parse(await redisClient.get(timestamp))
           let newData = {
-            receivedPackages: 1,
+            receivedPackages: val.receivedPackages+1,
             lastcrc: actual_crc,
             lastreceivedPackages: 1,
             buffer: Array.from(raw_file),
@@ -1440,7 +1441,7 @@ let a = {
 //     /* device_info.getCurrentFilename() */ `${timestamp}` +
 //       '.bin'
 //   );
-  if(fs.existsSync(filePath)){ 
+ 
 try {
     const filebuff = JSON.parse(redisClient.get(timestamp)).buffer
     // readJSONFile(filePath).buffer;
@@ -1501,16 +1502,8 @@ device_info.resetReceivedPackageCnt();
 
     current_state = FSM_STATE.LOOK_FOR_FILES;
 
-}
-else {
-  console.log("else in")
-//   if (device_info.getExtension() == ".h265") {
-//     processVideoFile(device_info.getDeviceDirectory(), `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
-//     }
-//     else {
-//         processImageFile(`${timestamp}`,device_info)
-//     }
-}
+
+
     
     device_info.resetReceivedPackageCnt();
     device_info.clearBuffer();
@@ -1553,20 +1546,21 @@ else {
 
   
 
-    let filePath2 
-    try {
-      filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
-    } catch (error) {
-      console.log(error)
-    }
+    // let filePath2 
+    // try {
+    //   filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+    // } catch (error) {
+    //   console.log(error)
+    // }
    
-    if(fs.existsSync(filePath2)){
-    let packagescnt ;
+    let jsonReaddata  =  JSON.parse(await redisClient.get(timestamp))
+    if(jsonReaddata){
+    
 
-        let jsonReaddata = readJSONFile(filePath2)
+        // let jsonReaddata = readJSONFile(filePath2)
    
-        pkgscount = jsonReaddata.lastreceivedPackages
-    let offset = jsonReaddata.lastreceivedPackages //device_info.getReceivedPackageCnt();
+        pkgscount = jsonReaddata.receivedPackages
+    let offset = jsonReaddata.receivedPackages //device_info.getReceivedPackageCnt();
    // console.log("ssd", offset,totallastreceivedPackages)
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
     if (
