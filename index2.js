@@ -570,6 +570,7 @@ const updateJSONFile = (newValues,filePath) => {
 
 
  function onConnClose() {
+  console.log("close")
   const startIndex = metadata.timestamp.indexOf('(') + 1;
   const endIndex = metadata.timestamp.indexOf(')');
       let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);

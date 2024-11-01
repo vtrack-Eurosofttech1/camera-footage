@@ -671,21 +671,39 @@ MetaData.prototype.setDriverName = function (driver_name, camera) {
 MetaData.prototype.getDriverName = function () {
   return this.driver_name;
 };
+// function crc16_generic(init_value, poly, data) {
+//   let RetVal = init_value;
+//   let offset;
+//   for (offset = 0; offset < data.length; offset++) {
+//     let bit;
+//     RetVal ^= data[offset];
+//     for (bit = 0; bit < 8; bit++) {
+//       let carry = RetVal & 0x01;
+//       RetVal >>= 0x01;
+//       if (carry) {
+//         RetVal ^= poly;
+//       }
+//     }
+//   }
+//   return RetVal;
+// }
 function crc16_generic(init_value, poly, data) {
-  let RetVal = init_value;
-  let offset;
-  for (offset = 0; offset < data.length; offset++) {
-    let bit;
-    RetVal ^= data[offset];
-    for (bit = 0; bit < 8; bit++) {
-      let carry = RetVal & 0x01;
-      RetVal >>= 0x01;
-      if (carry) {
-        RetVal ^= poly;
+  return new Promise((resolve) => {
+    let RetVal = init_value;
+    let offset;
+    for (offset = 0; offset < data.length; offset++) {
+      let bit;
+      RetVal ^= data[offset];
+      for (bit = 0; bit < 8; bit++) {
+        let carry = RetVal & 0x01;
+        RetVal >>= 0x01;
+        if (carry) {
+          RetVal ^= poly;
+        }
       }
     }
-  }
-  return RetVal;
+    resolve(RetVal); // Resolve the promise with the computed value
+  });
 }
 exports.ParseCmd = function (a) {
   return a.readUInt16BE(0);
@@ -830,6 +848,12 @@ console.log("timestamp",timestamp)
   //   ///  dbg.log("[TX]: [" + query.toString("hex") + "]");
   //     connection.write(query);
   // }
+  if(timestamp == 1730454640000){
+    console.log("p")
+    const query = Buffer.from([0, 5, 0, 4, 0, 0, 0, 0]);
+   // dbg.log("[TX]: [" + query.toString("hex") + "]");
+    connection.write(query);
+  }
 
   switch (cmd_id) {
     case CMD_ID.START: { 
@@ -866,6 +890,7 @@ console.log("timestamp",timestamp)
     device_info.clearBuffer();
     
     let offset = pkgscount;
+    console.log("offset",offset )
     let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
   
      // offset = offset;
@@ -874,6 +899,8 @@ console.log("timestamp",timestamp)
     offset = offsetNum.toString()
 
     query.writeUInt32BE(offset, 4);
+    //console.log("Sascas", query.writeUInt32BE(offset, 4))
+    connection.write(query);
           current_state = FSM_STATE.WAIT_FOR_CMD;
           let total_pkg = device_info.getTotalPackages()
           let recive_pkg = device_info.getReceivedPackageCnt();
@@ -988,9 +1015,19 @@ console.log("timestamp",timestamp)
       //   0x8408,
       //   raw_file
       // );
+  //     let computed_crcVal;
+  //     crc16_generic(device_info.getLastCRC(), 0x8408, raw_file)
+  // .then(computed_crc => {
+   
+  //   computed_crcVal =computed_crc
+  // })
+  // .catch(error => {
+  //  // console.error("Error computing CRC:", error);
+  // });
+
     
       let actual_crc = data_buffer.readUInt16BE(4 + data_len);
-      // if (computed_crc != actual_crc) {
+      // if (computed_crcVal != actual_crc) {
 
       //   current_state = FSM_STATE.REPEAT_PACKET;
       // } else {
@@ -1021,25 +1058,25 @@ console.log("timestamp",timestamp)
         device_info.setLastCRC(actual_crc);
 //console.log("raw_file", raw_file)
 
-let a = {
-    length: raw_file.length,
-    data: Array.from(raw_file),
-    Timestamp: Date.now()
-}
+// let a = {
+//     length: raw_file.length,
+//     data: Array.from(raw_file),
+//     Timestamp: Date.now()
+// }
         let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
           let newData = {
             receivedPackages: 1,
             lastcrc: actual_crc,
             lastreceivedPackages: 1,
             buffer: Array.from(raw_file),
-            packets: [a]
+           // packets: [a]
            
           }
           updateJSONFile(newData, filePath)
     
       
 
-      // }
+     //  }
 
       if (
         device_info.getTotalPackages() == device_info.getReceivedPackageCnt()
@@ -1418,11 +1455,11 @@ let a = {
     progress_bar.stop();
     emitdatatoSocket(device_info.getDeviceInfoData());
 
-    temp_file_buff = Buffer.alloc(0);
-    temp_file_buff = Buffer.concat([
-      temp_file_buff,
-      device_info.getFileBuffer()
-    ]);
+    // temp_file_buff = Buffer.alloc(0);
+    // temp_file_buff = Buffer.concat([
+    //   temp_file_buff,
+    //   device_info.getFileBuffer()
+    // ]);
     let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
     
          

@@ -69,11 +69,12 @@ function calculateTimeDifference(startTime, endTime) {
 }
 
 // Example usage
-const startTimestamp = 1730362610504; // Example start time in Unix timestamp
-const endTimestamp = 1730362620863; // Example end time in Unix timestamp
+const startTimestamp = 1730444972022; // Example start time in Unix timestamp
+const endTimestamp = 1730445016592; // Example end time in Unix timestamp
 
 const timeDifference = calculateTimeDifference(startTimestamp, endTimestamp);
 console.log(`Time difference in seconds: ${timeDifference}`); // Output: 100
+
 
 
 // const fs = require('fs');
@@ -132,4 +133,15 @@ console.log(`Time difference in seconds: ${timeDifference}`); // Output: 100
 
 // //const t = readJSONFile(filePath).buffer.join(', ');
 // writeJSONFile(filePath, newValues);
-// //onsole.log("tttt", t);
+// //onsole.log("tttt", t);ss
+// vs
+// 1730444972022
+// 1730444974241
+// 1730444974521
+// 1730444974801
+// 1730444975081
+// 1730444975360
+// 1730444975641
+// 1730444975902
+
+
