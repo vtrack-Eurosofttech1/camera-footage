@@ -6,9 +6,7 @@
   "bin": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node index2.js -p 7056 -r 2 -m 1"
-    
-
+    "dev": "node index3.js -p 7056 -r 2 -m 1"
   },
   "author": "",
   "license": "ISC",
@@ -28,6 +26,7 @@
     "nodemon": "^3.1.4",
     "pkg": "^4.4.8",
     "socket.io": "^4.7.5",
+    "sticky-session": "^1.1.2",
     "winston": "^3.10.0",
     "ws": "^8.17.0"
   }

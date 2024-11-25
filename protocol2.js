@@ -203,6 +203,9 @@ Device.prototype.addToBuffer = function (data, offset) {
   this.file_buff = this.file_buff.slice(0, offset);
   this.file_buff = Buffer.concat([this.file_buff, data]);
 };
+Device.prototype.newaddToBuffer = function (data) {
+  this.file_buff = Buffer.concat([this.file_buff, data])
+}
 Device.prototype.clearBuffer = function () {
   this.file_buff = Buffer.alloc(0);
 };
@@ -671,40 +674,40 @@ MetaData.prototype.setDriverName = function (driver_name, camera) {
 MetaData.prototype.getDriverName = function () {
   return this.driver_name;
 };
-// function crc16_generic(init_value, poly, data) {
-//   let RetVal = init_value;
-//   let offset;
-//   for (offset = 0; offset < data.length; offset++) {
-//     let bit;
-//     RetVal ^= data[offset];
-//     for (bit = 0; bit < 8; bit++) {
-//       let carry = RetVal & 0x01;
-//       RetVal >>= 0x01;
-//       if (carry) {
-//         RetVal ^= poly;
-//       }
-//     }
-//   }
-//   return RetVal;
-// }
 function crc16_generic(init_value, poly, data) {
-  return new Promise((resolve) => {
-    let RetVal = init_value;
-    let offset;
-    for (offset = 0; offset < data.length; offset++) {
-      let bit;
-      RetVal ^= data[offset];
-      for (bit = 0; bit < 8; bit++) {
-        let carry = RetVal & 0x01;
-        RetVal >>= 0x01;
-        if (carry) {
-          RetVal ^= poly;
-        }
+  let RetVal = init_value;
+  let offset;
+  for (offset = 0; offset < data.length; offset++) {
+    let bit;
+    RetVal ^= data[offset];
+    for (bit = 0; bit < 8; bit++) {
+      let carry = RetVal & 0x01;
+      RetVal >>= 0x01;
+      if (carry) {
+        RetVal ^= poly;
       }
     }
-    resolve(RetVal); // Resolve the promise with the computed value
-  });
+  }
+  return RetVal;
 }
+// function crc16_generic(init_value, poly, data) {
+//   return new Promise((resolve) => {
+//     let RetVal = init_value;
+//     let offset;
+//     for (offset = 0; offset < data.length; offset++) {
+//       let bit;
+//       RetVal ^= data[offset];
+//       for (bit = 0; bit < 8; bit++) {
+//         let carry = RetVal & 0x01;
+//         RetVal >>= 0x01;
+//         if (carry) {
+//           RetVal ^= poly;
+//         }
+//       }
+//     }
+//     resolve(RetVal); // Resolve the promise with the computed value
+//   });
+// }
 exports.ParseCmd = function (a) {
   return a.readUInt16BE(0);
 };
@@ -834,7 +837,8 @@ exports.run_fsm = async function (
   metadata_option
 ) {
   let file_available = false;
-
+//console.log("data_buffer11", data_buffer.length)
+let emptyarray = []
  const startIndex = metadata.timestamp.indexOf('(') + 1;
 const endIndex = metadata.timestamp.indexOf(')');
 const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
@@ -1010,11 +1014,11 @@ console.log("timestamp",timestamp)
  
       let raw_file = data_buffer.slice(4, 4 + data_len);
 
-      // let computed_crc = crc16_generic(
-      //   device_info.getLastCRC(),
-      //   0x8408,
-      //   raw_file
-      // );
+      let computed_crc = crc16_generic(
+        device_info.getLastCRC(),
+        0x8408,
+        raw_file
+      );
   //     let computed_crcVal;
   //     crc16_generic(device_info.getLastCRC(), 0x8408, raw_file)
   // .then(computed_crc => {
@@ -1027,10 +1031,11 @@ console.log("timestamp",timestamp)
 
     
       let actual_crc = data_buffer.readUInt16BE(4 + data_len);
-      // if (computed_crcVal != actual_crc) {
+      if (computed_crc != actual_crc) {
 
-      //   current_state = FSM_STATE.REPEAT_PACKET;
-      // } else {
+        current_state = FSM_STATE.REPEAT_PACKET;
+      } else {
+        device_info.newaddToBuffer(raw_file)
 //         switch (device_info.getCameraType()) {
 //           case CAMERA_TYPE.DUALCAM: {
 //             let receivedPackageCnt =  Math.floor(device_info.file_buff.length / 1024);
@@ -1046,13 +1051,13 @@ console.log("timestamp",timestamp)
         let rx_pkg_cnt = device_info.getReceivedPackageCnt();
    
         progress_bar.update(rx_pkg_cnt);
-        console.log(rx_pkg_cnt,
-            "Package: " +
-              device_info.getReceivedPackageCnt() +
-              " / " +
-              (device_info.getTotalPackages() -
-                (1 - device_info.sync_offset_correction))
-          );
+        // console.log(rx_pkg_cnt,
+        //     "Package: " +
+        //       device_info.getReceivedPackageCnt() +
+        //       " / " +
+        //       (device_info.getTotalPackages() -
+        //         (1 - device_info.sync_offset_correction))
+        //   );
         emitdatatoSocket(device_info.getDeviceInfoData());
         
         device_info.setLastCRC(actual_crc);
@@ -1063,20 +1068,26 @@ console.log("timestamp",timestamp)
 //     data: Array.from(raw_file),
 //     Timestamp: Date.now()
 // }
-        let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
-          let newData = {
-            receivedPackages: 1,
-            lastcrc: actual_crc,
-            lastreceivedPackages: 1,
-            buffer: Array.from(raw_file),
-           // packets: [a]
+        // let filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
+        //   let newData = {
+        //     receivedPackages: 1,
+        //     lastcrc: actual_crc,
+        //     lastreceivedPackages: 1,
+        //     buffer: Array.from(raw_file),
+        //    // packets: [a]
            
-          }
-          updateJSONFile(newData, filePath)
-    
-      
+        //   }
+        //   updateJSONFile(newData, filePath)
+      //   if (raw_file && raw_file.length > 0) {
+      //     raw_file.forEach(item => {
+      //         if (item.data) {
+      //           emptyarray.push(...item.data); // Spread the data array into the buffer
+      //         }
+      //     });
+      // }
+     // emptyarray.push(raw_file)
 
-     //  }
+       }
 
       if (
         device_info.getTotalPackages() == device_info.getReceivedPackageCnt()
@@ -1088,6 +1099,7 @@ console.log("timestamp",timestamp)
         let newData = {
             
             ReceivedAllPackets: true,
+           // buffer: emptyarray.data
           
           }
           updateJSONFile(newData, filePath)
@@ -1098,6 +1110,7 @@ console.log("timestamp",timestamp)
 
       break;
     }
+
 
     case CMD_ID.METADATA: {
      // console.log("cmd METADATA");
@@ -1478,8 +1491,14 @@ console.log("timestamp",timestamp)
 //   );
   if(fs.existsSync(filePath)){ 
 try {
-    const filebuff = readJSONFile(filePath).buffer;
-    let bufferData = Buffer.from(filebuff, "base64");
+  let getbuffer = device_info.getFileBuffer()
+  
+  let newValues= {
+    buffer: getbuffer
+  }
+  updateJSONFile(newValues,filePath)
+    //const filebuff = readJSONFile(filePath).buffer;
+    let bufferData = Buffer.from(device_info.getFileBuffer(), "base64");
     let filePath2 = path.join(
         __dirname,
         device_info.getDeviceDirectory(),

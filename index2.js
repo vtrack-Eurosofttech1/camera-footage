@@ -571,6 +571,13 @@ const updateJSONFile = (newValues,filePath) => {
 
  function onConnClose() {
   console.log("close")
+  let getbuffer = device_info.getFileBuffer()
+  
+  let newValues= {
+    receivedPackages: device_info.getReceivedPackageCnt(),
+    buffer: getbuffer
+  }
+ 
   const startIndex = metadata.timestamp.indexOf('(') + 1;
   const endIndex = metadata.timestamp.indexOf(')');
       let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
@@ -578,7 +585,7 @@ const updateJSONFile = (newValues,filePath) => {
   let filePath 
   try {
     filePath = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + '.json');
- 
+    updateJSONFile(newValues,filePath)
   } catch (error) {
     console.log(":", error)
   }
@@ -586,7 +593,7 @@ const updateJSONFile = (newValues,filePath) => {
  
     // getUnixTimestamp(metadata.timestamp);
    
-    console.log("timestamp", timestamp)
+    console.log("timestampscc", timestamp)
   try {
     filepath1 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + `${device_info.getExtension()}`);
   } catch (error) {
@@ -626,11 +633,12 @@ const updateJSONFile = (newValues,filePath) => {
     
  }
   function onConnError(err) {
+
    // dbg.logAndPrint("Connection " + remoteAddress + " error: " + err.message);
-   // console.log("onConnError");
+    console.log("onConnError");
   }
   function onConnTimeout() {
  //   dbg.logAndPrint("Connection from " + remoteAddress + " timeouted");
-  //  console.log("onConnTimeout");
+    console.log("onConnTimeout");
   }
 }
