@@ -1,11 +1,20 @@
-const net = require('net');
-const commandLineArgs = require('command-line-args');
-const tls = require('tls');
-const fs = require('fs');
-const protocol = require('./protocol4.js');
-const cliProgress = require('cli-progress');
-const _colors = require('colors');
-const dbg = require('./debug.js')
+const net = require("net");
+const commandLineArgs = require("command-line-args");
+const tls = require("tls");
+const fs = require("fs");
+// const protocol = require("./protocol.js");
+const protocol = require("./protocol5.js");
+const cliProgress = require("cli-progress");
+const _colors = require("colors");
+const dbg = require("./debug.js");
+const path = require("path");
+const { uploadToS3 } = require("./uploadToS3.js");
+const { exec } = require("child_process");
+const { ConvertVideoFile } = require("./ConvertVideoFile.js");
+const emitdatatoSocket = require("./socket.js");
+const { checkVideoPlayback, videoConversion } = require("./nn.js");
+const { processVideoFile, processImageFile } = require("./setparamsofS3.js");
+
 
 process.setMaxListeners(12);
 
@@ -37,7 +46,7 @@ if (args.help == true) {
     process.exit();
 }
 
-/* Check arguments for port */
+/* Check arguments for port  */
 let port = 0;
 if (args.port > 0) {
     port = args.port;
@@ -85,7 +94,7 @@ if (typeof(args.meta) != "undefined") {
         dbg.error("Metadata request parameter provided incorrectly!");
         process.exit();
     }
-} else {
+} else {  
     dbg.logAndPrint("No metadata requests will be made");
 }
 
@@ -117,7 +126,7 @@ function handleConnection(connection) {
         barsize: 30,
         hideCursor: true
     }, cliProgress.Presets.shades_grey);
-
+console.log("new Conenction", new Date())
     let tcp_buffer = Buffer.alloc(0);
     let remoteAddress = connection.remoteAddress + ':' + connection.remotePort;
     let current_state = protocol.fsm_state.INIT;
@@ -132,6 +141,9 @@ function handleConnection(connection) {
     connection.once('close', onConnClose);
     connection.on('error', onConnError);
     connection.on('timeout', onConnTimeout);
+    // connection.setTimeout(0); // Disable timeout
+    // connection.setKeepAlive(true, 10000); // Enable keep-alive with a 10-second interval
+
 
     function repeatSyncRequest() {
         current_state = protocol.run_fsm(protocol.fsm_state.REPEAT_PACKET, connection, cmd_id.NONE, tcp_buffer, device_info, metadata, progress_bar, camera_option, metadata_option);
@@ -171,9 +183,11 @@ function handleConnection(connection) {
                 tcp_buffer = Buffer.alloc(0);
             }
         }
-
+console.log("data.length",data.length)
         // Add new data to buffer
         tcp_buffer = Buffer.concat([tcp_buffer, data]);
+//console.log("tcp_buffer.length",tcp_buffer.length)
+
 
         // A loop to handle case where a packet contains more than one command
         repeat_cycle = true;
@@ -186,12 +200,12 @@ function handleConnection(connection) {
             }
 
             // Log RX buffer contents
-            dbg.log("[RX]: [" + tcp_buffer.toString('hex') + "]");
+          //  dbg.log("[RX]: [" + tcp_buffer.toString('hex') + "]");
 
             // Check CMD validity
             cmd_id = protocol.ParseCmd(tcp_buffer);
             if (protocol.IsCmdValid(cmd_id) == false) {
-                dbg.log("Invalid CMD ID: " + cmd_id);
+             //   dbg.log("Invalid CMD ID: " + cmd_id);
                 tcp_buffer = Buffer.alloc(0);
                 return;
             }
@@ -204,23 +218,49 @@ function handleConnection(connection) {
             }
 
             // If there is not enough data for buffer - return and wait another TCP packet
-            if (tcp_buffer.length < cmd_size) {
-                return;
-            }
+            // if (tcp_buffer.length < cmd_size) {
+            //     return;
+            // }
 
             current_state = protocol.run_fsm(current_state, connection, cmd_id, tcp_buffer, device_info, metadata, progress_bar, camera_option, metadata_option);
             if (current_state == protocol.fsm_state.REPEAT_PACKET) {
                 tcp_buffer = Buffer.alloc(0);
             } else {
-                dbg.log("Invalid CMD ID: " + cmd_id);
-                tcp_buffer = tcp_buffer.slice(cmd_size, tcp_buffer.length);
+              //  dbg.log("Invalid CMD ID: " + cmd_id);
+               // tcp_buffer = tcp_buffer.slice(cmd_size, tcp_buffer.length);
+               tcp_buffer = Buffer.alloc(0)
                 repeat_cycle = true;
             }
         }
     }
-
+    const readJSONFile = (filePath) => {
+        if (fs.existsSync(filePath)) {
+          const data = fs.readFileSync(filePath, 'utf-8');
+          return JSON.parse(data);
+      }
+      return null;
+        
+              
+      };
     function onConnClose() {
-        dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
+       // dbg.logAndPrint('Connection from ' + remoteAddress + ' closed');
+       console.log("close")
+//        try {
+//         const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + '.json');
+//        let data =  readJSONFile(filePath2)
+// if(data.uploadedToS3 == false){
+//     if (device_info.getExtension() == ".h265") {
+//         processVideoFile(device_info.getDeviceDirectory(), metadata.getTimestamp(),metadata.getFramerate(),device_info.getExtension(),device_info.getFileToDL() ,device_info)
+//         }
+//         else {
+//             processImageFile(metadata.getTimestamp(),device_info)
+//         }
+// }
+//        } catch (error) {
+        
+//        }
+       
+       
     }
 
     function onConnError(err) {

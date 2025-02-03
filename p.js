@@ -220,42 +220,141 @@
 //     // End timing
 //     console.timeEnd('readFileTime');
 // });
-const fs = require("fs").promises;
-const readJSONFile = async (filePath) => {
-    try {
-      const data = await fs.readFile(filePath, ()=>{});
-      return JSON.parse(data);
-    } catch (err) {
-      console.error("Error reading JSON file:", err);
-      return null;
-    }
-  };
+// const fs = require("fs").promises;
+// const readJSONFile = async (filePath) => {
+//     try {
+//       const data = await fs.readFile(filePath, ()=>{});
+//       return JSON.parse(data);
+//     } catch (err) {
+//       console.error("Error reading JSON file:", err);
+//       return null;
+//     }
+//   };
 
-try {
-    let filePath1 = "/home/eurosofttech/camera_server/camera-footage/downloads/863719061653375/1731066194000buffer.json"
-    // Asynchronously read and decode the buffer data
-    const readbuff = await  fs.readFile(filePath1); // Assuming readbufferJSONFile is also async
-    const bufferData = Buffer.from(readbuff, "base64");
+// try {
+//     let filePath1 = "/home/eurosofttech/camera_server/camera-footage/downloads/863719061653375/1731066194000buffer.json"
+//     // Asynchronously read and decode the buffer data
+//     const readbuff = await  fs.readFile(filePath1); // Assuming readbufferJSONFile is also async
+//     const bufferData = Buffer.from(readbuff, "base64");
 
-    const filePath2 = "/home/eurosofttech/camera_server/camera-footage/downloads/863719061653375/1731066194000.h265"
+//     const filePath2 = "/home/eurosofttech/camera_server/camera-footage/downloads/863719061653375/1731066194000.h265"
    
 
-    // Write the buffer data to the new file
-    await fs.writeFile(filePath2, bufferData);
+//     // Write the buffer data to the new file
+//     await fs.writeFile(filePath2, bufferData);
 
-    // After writing, process the file based on its extension
-    if (device_info.getExtension() === ".h265") {
-      await processVideoFile(
-        device_info.getDeviceDirectory(),
-        `${timestamp}`,
-        frameratevideo,
-        device_info.getExtension(),
-        device_info.getFileToDL(),
-        device_info
-      );
-    } else {
-      await processImageFile(`${timestamp}`, device_info);
+//     // After writing, process the file based on its extension
+//     if (device_info.getExtension() === ".h265") {
+//       await processVideoFile(
+//         device_info.getDeviceDirectory(),
+//         `${timestamp}`,
+//         frameratevideo,
+//         device_info.getExtension(),
+//         device_info.getFileToDL(),
+//         device_info
+//       );
+//     } else {
+//       await processImageFile(`${timestamp}`, device_info);
+//     }
+//   } catch (error) {
+//     console.error("Error during buffer processing or file writing:", error);
+//   }
+
+
+
+
+const fs = require('fs');
+const path = require("path");
+
+let timestamp = "1732805441000"
+let device_directory = "/home/eurosofttech/camera_server/camera-footage/downloads/866907056700205"
+let filePath = path.join(device_directory, `${timestamp}` + '.json');
+let filePath1 = path.join(device_directory, `${timestamp}buffer` + '.json');
+let extension = '.jpeg'
+let IMEI = "866907056700205"
+
+const readbufferJSONFile = (filePath) => {
+  try {
+      const data = fs.readFileSync(filePath); // Read file synchronously
+     // console.log("sa", data);  // Log data to console
+      return data;  // Return data
+    } catch (err) {
+      console.error('Error reading the file:', err);
+      return null;  // Return null if error occurs
     }
-  } catch (error) {
-    console.error("Error during buffer processing or file writing:", error);
-  }
+
+}
+
+
+console.log("Saa", filePath)
+
+if(fs.existsSync(filePath)){ 
+try {
+  console.log("S", filePath)
+// updateJSONFile(newValues,filePath)
+let readbuff = readbufferJSONFile(filePath1)
+//console.log(typeof readbuff,readbuff.length)
+
+// const filebuff = readJSONFile(filePath);
+let bufferData = Buffer.from(readbuff, "base64");
+let filePath2 = path.join(
+   
+    device_directory,
+    /* device_info.getCurrentFilename() */ `${timestamp}` +
+    extension
+  );
+fs.writeFile(filePath2, bufferData, (err) => {
+    if (err) {
+        console.error("Error writing file:", err);
+    } else {
+       // console.log("The file has been saved at:", file1Path);
+        if (extension == ".h265") {
+        //  processVideoFile(device_directory, `${timestamp}`,`${frameratevideo}`,device_info.getExtension(),device_info.getFileToDL() ,device_info)
+          }
+          else {
+             // processImageFile(`${timestamp}`,device_info)
+             const fileName = path.join( device_directory, `${timestamp}` + '.jpeg');
+    const filePath = path.join(__dirname, IMEI, fileName);
+    console.log(__dirname, IMEI, fileName)
+  console.log("afa", filePath)
+  //let deviceInfo = device_info.getDeviceDirectory();
+   //   let directory = deviceInfo.split("/").pop();
+    let fileContent;
+    try {
+      fs.readFile(filePath,async (e,d)=>{
+        fileContent=d
+        const params = {
+          Bucket: "vtracksolutions/media", // pass your bucket name
+          Key: IMEI + "/" + `${timestamp}` + ".jpeg",
+        Body: fileContent
+      };
+    console.log(params)
+      try {
+        await uploadToS3(params, {
+          fileType: 1,
+          fileName: fileName,
+          deviceIMEI: IMEI,
+          filePath: filePath,
+
+          cameraType: "%photof"
+        });
+    
+    } catch (error) {
+        console.log("error in",error)
+        }
+
+    })
+} catch (error) {
+    console.log("error in2",error)
+    }
+
+
+             //
+          }
+    }
+  });
+
+} catch (error) {
+console.log("error in",error)
+}
+}

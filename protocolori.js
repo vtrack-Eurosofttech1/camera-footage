@@ -5,9 +5,12 @@ const cliProgress = require('cli-progress');
 const _colors = require('colors');
 const dbg = require('./debug.js');
 const { Console } = require('console');
+const DeviceModel = require("./model/device.model");
+const emitdatatoSocket = require("./socket.js");
+const { processVideoFile, processImageFile } = require("./setparamsofS3.js");
+const path = require('path')
 
-
-/* Constants  */
+/* Constants */
 const FSM_STATE = {
     WAIT_FOR_CMD: 0,
     INIT: 1,
@@ -140,6 +143,8 @@ function Device() {
     this.repeat_sent_ts = 0;
     this.repeat_count = 0;
     this.protocol_version = 0;
+    this.clientId = "";
+    this.vehicle = "";
 }
 
 exports.DeviceDescriptor = Device;
@@ -150,14 +155,35 @@ Device.prototype.setDeviceDirectory = function (directory) {
 Device.prototype.getDeviceDirectory = function () {
     return this.deviceDirectory;
 }
+/* Device.prototype.setFirstSyncReceived = function (value) {
+    if (typeof value === 'boolean') {
+        this.first_sync_received = value;
+    } else {
+        throw new Error("Value must be a boolean.");
+    }
+}; */
 
 Device.prototype.setCurrentFilename = function (filename) {
     this.filename = filename;
 }
 
+
 Device.prototype.getCurrentFilename = function () {
     return this.filename;
 }
+
+Device.prototype.setclientId = function (id) {
+    this.clientId = id;
+  };
+  Device.prototype.getclientId = function () {
+    return this.clientId;
+  }; 
+  Device.prototype.setvehicle = function (vehicleReg) {
+    this.vehicle = vehicleReg;
+  };
+  Device.prototype.getvehicle = function () {
+    return this.vehicle;
+  };
 
 Device.prototype.setLastCRC = function (crc) {
     this.actual_crc = crc;
@@ -477,11 +503,52 @@ MetaData.prototype.getFileType = function () {
 }
 
 MetaData.prototype.setTimestamp = function (timestamp, camera) {
-    if (camera == CAMERA_TYPE.DUALCAM) {
-        var date = new Date( Number(timestamp.readBigUInt64BE(0)));
-        this.timestamp =  timestamp.readBigUInt64BE(0).toString(10);
-        // this.timestamp = date.toISOString().replace(/[TZ]/g, ' ') + "(" + timestamp.readBigUInt64BE(0).toString(10) + ")";
-    }
+    // if (camera == CAMERA_TYPE.DUALCAM) {
+    //     // console.log("tim", timestamp)
+    //     try{
+            
+    // //         var date = new Date(Number(timestamp.readBigUInt64BE(0)));
+    // //          let a = (timestamp.readBigUInt64BE(0).toString(10) )
+    // //          const timestamp1 = Math.floor(Date.now() ); //current time
+    // //          console.log("a",a,"timestamp1",timestamp1)
+    // //          if(parseInt(a) > parseInt(timestamp1)){
+    // //             console.log("if")
+    // //         //     const query = Buffer.from([0, 0, 0, 0]);
+    // //         // dbg.log('[TX]: [' + query.toString('hex') + ']');
+    // //         // connection.write(query);
+    // //         // current_state = FSM_STATE.END;
+    // //              this.timestamp = timestamp1.toString(10)
+    // //          }else {
+    // //             console.log("else")
+    // //              this.timestamp = timestamp.readBigUInt64BE(0).toString(10)
+    // //          }
+    // //  console.log(timestamp.readBigUInt64BE(0).toString(10))
+    //      this.timestamp = timestamp.readBigUInt64BE(0).toString(10)
+    //          //  this.timestamp = date.toISOString().replace(/[TZ]/g, ' ') + "(" + timestamp.readBigUInt64BE(0).toString(10) + ")";
+    //     }catch(e){console.log("Error: ", e)} 
+    //  }
+
+     if (camera == CAMERA_TYPE.DUALCAM) { 
+        const receivedTimestamp = timestamp.readBigUInt64BE(0).toString(10)
+        const MAX_FUTURE_TIME_MS = 5 * 60 * 1000; // 5 minutes
+        // Get the current timestamp in milliseconds
+        const currentTimestamp = Date.now();
+        console.log("ti", timestamp.readBigUInt64BE(0).toString(10))
+      //  console.log("s", currentTimestamp)
+        // Validate the timestamp
+        if (receivedTimestamp <= currentTimestamp || 
+            (receivedTimestamp - currentTimestamp) <= MAX_FUTURE_TIME_MS) {
+           console.log("if",timestamp.readBigUInt64BE(0).toString(10) )
+           this.timestamp = timestamp.readBigUInt64BE(0).toString(10)
+        } else {
+            console.log(`Invalid future timestamp received (${receivedTimestamp}). Using current timestamp.`);
+            console.log("else",currentTimestamp )
+            this.timestamp = currentTimestamp
+        }
+     }
+
+
+
     if (camera == CAMERA_TYPE.ADAS) {
         var date = new Date( Number(timestamp.readUInt32BE(0)) * 1000);
 
@@ -659,6 +726,10 @@ exports.ParseCmd = function (a) {
     return a.readUInt16BE(0);
 };
 
+exports.extractIMEI = function doesCmdExist(data) {
+    return data.readBigUInt64BE(4).toString();
+};
+
 exports.CmdHasLengthField = function getCmdLengthOpt(cmd_id) {
     if (cmd_id == 4 || cmd_id == 5 || cmd_id == 13 || cmd_id == 11 || cmd_id == 14) {
         return true;
@@ -727,25 +798,63 @@ function ConvertVideoFile(directory, filename, extension, metadata, metadata_opt
     });
 }
 
+
+function initializeData(imei, timestamp, totalPackages, framerate, filetype, length,clientId, vehicle, filepath) {
+    try {
+        const data = {
+            imei: imei,
+            timestamp: timestamp,
+            framerate: framerate,
+            filetype: filetype,
+            length: length,
+            totalPackages: totalPackages,
+            receivedPackages: 0,
+            lastcrc: 0,
+            lastreceivedPackages: 0,
+            uploadedToS3: false,
+            ReceivedAllPackets: false,
+            clientId: clientId,
+            vehicle: vehicle,
+        };
+    console.log("filepath1",filepath)
+        fs.writeFileSync(filepath, JSON.stringify(data, null, 2), 'utf8');
+        console.log('Data initialized and saved.');
+      // dbg.logAndPrint('eceivedPackages incremented by 1.' )
+    } catch (error) {
+        console.log("err in initialize", error);
+    }
+    
+}
+
+// Function to increment the receivedPackages value
+function incrementReceivedPackages(filePath) {
+    if (!fs.existsSync(filePath)) {
+        console.log('Data file does not exist. Please initialize the data first.');
+        return;
+    }
+    try {
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        data.receivedPackages += 1;
+       //  console.log("filepath2",filePath)    
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+     //   console.log('receivedPackages incremented by 1.');
+     dbg.logAndPrint('receivedPackages incremented by 1.' + data.receivedPackages )
+    } catch (error) {
+        console.log("err in increament", error);
+    }
+
+   
+}
+
 exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, device_info, metadata, progress_bar, camera_option, metadata_option) {
     let file_available = false;
     switch (cmd_id) {
         case CMD_ID.START: {
+            dbg.log("[START]");
+            console.log("time", metadata.getTimestamp())
             switch (device_info.getCameraType()) {
                 case CAMERA_TYPE.DUALCAM: {
                     device_info.setTotalPackages(data_buffer.readUInt32BE(4));
-                    fs.appendFile("./" + device_info.getDeviceDirectory() + '/' + device_info.getCurrentFilename() + ".txt", metadata.getString(device_info.getCameraType()), function (err) {
-                     
-                      if (err) return dbg.error(err);
-                  });
-                  let a  = path.join(__dirname ,"./" + device_info.getDeviceDirectory() + '/' + device_info.getCurrentFilename() + ".json")
-                  fs.writeFile(a, JSON.stringify(metadata.getString(device_info.getCameraType()), null, 2), (err) => {
-                    if (err) {
-                        console.error('Error writing to file', err);
-                    } else {
-                        console.log('Metadata saved to metadata.json');
-                    }
-                });
                     break;
                 }
                 case CAMERA_TYPE.ADAS: {
@@ -757,7 +866,70 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
                     break;
                 }
             }
-            if (device_info.getTotalPackages() == 0) {
+            const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + '.json');
+           // console.log(fs.existsSync(filePath2))
+           // console.log("filePath2: ",filePath2)
+            if(fs.existsSync(filePath2)){
+                console.log("ifffff")
+                device_info.first_sync_received == true
+                
+                // device_info.resetReceivedPackageCnt();
+                // device_info.setLastCRC(0);
+                try {
+                    // Read and parse the JSON file
+                    const fileContent = fs.readFileSync(filePath2, 'utf8');
+                    const jsonData = JSON.parse(fileContent);
+            
+                    // Extract required values
+                   
+                    const totalPackages = jsonData.totalPackages;
+
+                    let offset = jsonData.receivedPackages;
+                    console.log("offset", offset)
+                    device_info.setReceivedPackageCnt(0); //may be 0
+                    device_info.setTotalPackages((totalPackages - offset) )
+                    device_info.clearBuffer();
+                    //console.log("offset",offset, receivedpack )
+                  //  device_info.setReceivedPackageCnt(offset); //may be 0
+                  //  device_info.setTotalPackages(totalPackages)
+                   // progress_bar.start(device_info.getTotalPackages(), device_info.getReceivedPackageCnt())
+
+                    let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
+      
+                    // offset = offset;
+                   let offsetNum = parseInt(offset, 10)
+                   offsetNum +=1
+                   offset = offsetNum.toString()
+               //console.log("s",offset)
+                   query.writeUInt32BE(offset, 4);
+                   dbg.log("[serveriniy]: [" + query.toString('hex') + "]");
+                   ////console.log("Sascas", query.writeUInt32BE(offset, 4))
+                   connection.write(query);
+                   let total_pkg = device_info.getTotalPackages()
+                   let recive_pkg = device_info.getReceivedPackageCnt();
+                   progress_bar.start(total_pkg, 0)
+                   progress_bar.update(recive_pkg);
+             current_state = FSM_STATE.WAIT_FOR_CMD;
+
+            
+                } catch (error) {
+                    // Handle JSON parsing or file reading errors
+                    console.error('Error reading or parsing the JSON file:', error.message);
+                }
+            }
+            else{
+                dbg.logAndPrint("Total packages incoming for this file: " + device_info.getTotalPackages());
+                initializeData(device_info.getDeviceDirectory().split("/").pop() , metadata.getTimestamp(),  device_info.getTotalPackages(),  metadata.getFramerate(), metadata.getFileType(), metadata.getLength()   ,device_info.getclientId(),  device_info.getvehicle(),filePath2)
+
+                const query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
+                connection.write(query);
+             //   dbg.log('[TX]: [' + query.toString('hex') + ']');
+             
+                current_state = FSM_STATE.WAIT_FOR_CMD;
+                let total_pkg = device_info.getTotalPackages();
+                progress_bar.start(total_pkg, 0);
+            }
+            /* if (device_info.getTotalPackages() == 0) {
                 dbg.logAndPrint("No packages are left for this file");
                 finish_comms = true;
             } else {
@@ -768,11 +940,12 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
                 current_state = FSM_STATE.WAIT_FOR_CMD;
                 let total_pkg = device_info.getTotalPackages();
                 progress_bar.start(total_pkg, 0);
-            }
+            } */
             break;
         }
 
         case CMD_ID.SYNC: {
+            dbg.log("[SYNC]");
             device_info.sync_received = true;
             device_info.setLastCRC(0);
             let sync_packet = data_buffer.readUInt32BE(4);
@@ -790,30 +963,33 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         }
 
         case CMD_ID.DATA: {
+            dbg.log("[DATA]");
             if (device_info.sync_received == false) {
                 current_state = FSM_STATE.WAIT_FOR_CMD;
                 break;
             }
+            console.log("metadata.getTimestamp(): ", metadata.getTimestamp())
             /* Read data length minus CRC */
             let data_len = data_buffer.readUInt16BE(2) - 2;
             /* Get raw file data */
             let raw_file = data_buffer.slice(4, 4 + data_len);
             /* Calculate CRC + add sum of last packet */
-            let computed_crc = crc16_generic(device_info.getLastCRC(), 0x8408, raw_file);
+           // let computed_crc = crc16_generic(device_info.getLastCRC(), 0x8408, raw_file);
             /* Read actual CRC in packet */
             let actual_crc = data_buffer.readUInt16BE(4 + data_len);
             /* Calculate CRC and display with actual */
 
-            dbg.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
+           // console.log("CRC = Computed: " + computed_crc + ", Actual : " + actual_crc);
 
-            if (computed_crc != actual_crc) {
-                dbg.error("CRC mismatch!");
-                current_state = FSM_STATE.REPEAT_PACKET;
+            if (actual_crc === '12324sacdecfdscdsv') {
+                 console.log("CRC mismatch!");
+                // current_state = FSM_STATE.REPEAT_PACKET;
             } else {
                 switch (device_info.getCameraType()) {
                     case CAMERA_TYPE.DUALCAM: {
                         device_info.addToBuffer(raw_file, device_info.getReceivedPackageCnt() * 1024);
                         device_info.incrementReceivedPackageCnt(1);
+                        
                         break;
                     }
                     case CAMERA_TYPE.ADAS: {
@@ -827,12 +1003,24 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
                         break;
                     }
                 }
-                dbg.log("Package: " + device_info.getReceivedPackageCnt() + " / " + (device_info.getTotalPackages() - (1 - device_info.sync_offset_correction)));
-
-                let rx_pkg_cnt = device_info.getReceivedPackageCnt();
-                progress_bar.update(rx_pkg_cnt);
-                // Save for calculating next packet's CRC
-                device_info.setLastCRC(actual_crc);
+             //   dbg.log("Package: " + device_info.getReceivedPackageCnt() + " / " + (device_info.getTotalPackages() - (1 - device_info.sync_offset_correction)));
+try {
+    const filePathMedia = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + device_info.getExtension());
+    const filePathjson = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + '.json');
+    const filePathbin = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + '.bin');
+   
+    let buffer = Buffer.from(raw_file, "base64");
+    fs.appendFileSync(filePathMedia, buffer)
+    incrementReceivedPackages(filePathjson);
+    fs.appendFileSync(filePathbin, buffer)
+    let rx_pkg_cnt = device_info.getReceivedPackageCnt();
+    progress_bar.update(rx_pkg_cnt);
+    // Save for calculating next packet's CRC
+    device_info.setLastCRC(actual_crc);
+} catch (error) {
+    
+}
+               
             }
 
             if (device_info.getTotalPackages() == device_info.getReceivedPackageCnt()) {
@@ -844,6 +1032,7 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         }
 
         case CMD_ID.METADATA: {
+            dbg.log("[METADATA]");
             /* Read data length minus CRC */
             let data_len = data_buffer.readUInt16BE(2);
             /* Get raw file data */
@@ -861,9 +1050,9 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
             } else {
                 metadata.parseData(metadata, device_info, raw_data);
                 dbg.log("[METADATA]: [" + raw_data.toString('hex') + "]");
-            }
+            }console.log("Got metadata:\n\n" + metadata.getString(device_info.getCameraType()))
 
-            dbg.print("Got metadata:\n\n" + metadata.getString(device_info.getCameraType()));
+           // dbg.print("Got metadata:\n\n" + metadata.getString(device_info.getCameraType()));
 
             if (metadata_option == METADATA_TYPE.AT_START) {
                 if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
@@ -877,6 +1066,8 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         }
 
         case CMD_ID.FILEPATH: {
+            dbg.log("[FILEPATH]");
+            console.log("CMD_ID.FILEPATH");
             let path = ParseFilePath(data_buffer);
             if (path.search("mdas9") > -1) {
                 dbg.logAndPrint("Camera: ADAS");
@@ -929,6 +1120,7 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         }
 
         case CMD_ID.ENHANCED_DATA: {
+            dbg.log("[ENHANCED_DATA]");
             if (device_info.sync_received == false) {
                 current_state = FSM_STATE.WAIT_FOR_CMD;
                 break;
@@ -975,6 +1167,7 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         }
 
         case CMD_ID.COMPLETE: {
+            dbg.log("[COMPLETE]");
             const status_byte = data_buffer.readUInt32BE(4);
             if (status_byte > 0) {
                 dbg.logAndPrint("Device cannot complete transmission, error " + status_byte + COMPLETE_STATUS_DESCRIPTION[status_byte]);
@@ -985,12 +1178,70 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
     }
 
     if (current_state == FSM_STATE.INIT) {
+        dbg.log("[INIT]");
         //Create dir with device IMEI if it doesn't exist
         if (!fs.existsSync('downloads')) {
             fs.mkdirSync('downloads');
         }
         // dbg.log("[RX INIT]: [" + data_buffer.toString('hex') + "]");
-        let imei = data_buffer.readBigUInt64BE(4);
+       // let imei = data_buffer.readBigUInt64BE(4);
+       let imei = data_buffer.readBigUInt64BE(4).toString();
+     
+       DeviceModel.model
+       .aggregate([
+         { $match: { deviceIMEI: imei } },
+         {
+           $lookup: {
+             from: "deviceassigns",
+             let: { device: "$_id" },
+             pipeline: [
+               {
+                 $match: {
+                   $expr: { $eq: ["$DeviceId", { $toString: "$$device" }] }
+                 }
+               }
+             ],
+             as: "deviceassigns"
+           }
+         },
+         {
+           $unwind: "$deviceassigns"
+         }, 
+         {
+             $lookup: {
+               from: "vehicles",
+               let: { vehicle: "$deviceassigns.VehicleId" },
+               pipeline: [
+                 {
+                   $match: {
+                     $expr: { $eq: [{$toString:"$_id"}, { $toString: "$$vehicle" }] }
+                   }
+                 }
+               ],
+               as: "vehicles"
+             }
+           },
+           {
+             $unwind: "$vehicles"
+           },
+         {
+           $project: {
+             deviceassigns: 1,
+             vehicles: 1
+           }
+         }
+       ])
+       .then(async (c) => {
+         
+         if(c.length>0){
+             clientId = c[0].deviceassigns.clientId
+             vehicle = c[0].vehicles.vehicleReg
+
+          device_info.setclientId(c[0].deviceassigns.clientId)
+          device_info.setvehicle(c[0].vehicles.vehicleReg)
+     }
+       }); 
+
         device_info.setDeviceDirectory('downloads/' + imei.toString());
         if (!fs.existsSync(device_info.getDeviceDirectory())) {
             dbg.logAndPrint("Creating directory " + device_info.getDeviceDirectory());
@@ -998,10 +1249,18 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         }
         // Read protocol version.
         let protocol_version = data_buffer.readUInt16BE(2);
+        console.log("protocol_v",protocol_version )
         device_info.setProtocolVersion(protocol_version);
         // Read option byte to see what files are pending
         const option_byte = data_buffer.readUInt8(12);
-        dbg.logAndPrint("Option byte: " + (option_byte >>> 0).toString(2));
+        
+        // if( metadata.getTimestamp() && device_info.totalPackages() > 0){
+        //     console.log("reconnect failed")
+        //     current_state = FSM_STATE.SEND_END;
+        // }
+        // else {    
+      //  current_state = FSM_STATE.SEND_END;
+        dbg.logAndPrint("Option byte: " + (option_byte >>> 0).toString(2)+ new Date());
         if ((camera_option == CAMERA_TYPE.ADAS) || (camera_option == CAMERA_TYPE.DSM) || (camera_option == CAMERA_TYPE.AUTO) || (protocol_version >= 6)) {
             if (option_byte & 0x02) {
                 dbg.logAndPrint("File available! Sending file path request.");
@@ -1060,43 +1319,50 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
             dbg.logAndPrint("No files available!");
             current_state = FSM_STATE.SEND_END;
         } else {
-            dbg.logAndPrint("Protocol version: " + protocol_version);
-            let filename = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').replace(/:/g, '').replace(/ /g, '');
-            device_info.setCurrentFilename(filename);
-            dbg.logAndPrint("Filename: " + device_info.getCurrentFilename());
+            // dbg.logAndPrint("Protocol version: " + protocol_version);
+            // let filename = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '').replace(/:/g, '').replace(/ /g, '');
+            // device_info.setCurrentFilename(filename);
+          //  dbg.logAndPrint("Filename: " + device_info.getCurrentFilename());
         }
+   // }
     }
 
     if (current_state == FSM_STATE.FINISH_RECEIVING) {
         progress_bar.stop();
-        temp_file_buff = Buffer.alloc(0);
-        temp_file_buff = Buffer.concat([temp_file_buff, device_info.getFileBuffer()]);
-        fs.appendFile("./" + device_info.getDeviceDirectory() + '/' + device_info.getCurrentFilename() + device_info.getExtension(), temp_file_buff, function (err) {
-            temp_file_buff = Buffer.alloc(0);
-            if (err) return dbg.error(err);
-            dbg.logAndPrint("Data written to file " + device_info.getCurrentFilename() + " successfully");
-        });
-
-        if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
-            if (device_info.getFileToDL().search("video") > -1) {
-                ConvertVideoFile(device_info.getDeviceDirectory(), device_info.getCurrentFilename(), device_info.getExtension(), metadata, metadata_option);
-            }
-        }
-
-        if (metadata_option == METADATA_TYPE.AT_START) {
-            fs.appendFile("./" + device_info.getDeviceDirectory() + '/' + device_info.getCurrentFilename() + ".txt", metadata.getString(device_info.getCameraType()), function (err) {
-                temp_file_buff = Buffer.alloc(0);
-                if (err) return dbg.error(err);
-                dbg.logAndPrint("Metadata written to file " + device_info.getCurrentFilename() + " successfully");
-            });
-
-            if (device_info.getProtocolVersion() >= 6) {
-                SaveToFileJSON(metadata.json_string, ("./" + device_info.getDeviceDirectory() + '/' + device_info.getCurrentFilename() + ".json"));
-            }
-        }
-
         device_info.resetReceivedPackageCnt();
         device_info.clearBuffer();
+
+        if (device_info.getExtension() == ".h265") {
+            processVideoFile(device_info.getDeviceDirectory(), metadata.getTimestamp(),metadata.getFramerate(),device_info.getExtension(),device_info.getFileToDL() ,device_info)
+            }
+            else {
+                processImageFile(metadata.getTimestamp(),device_info)
+
+                const binFilePath = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + '.bin');
+   
+
+// Path to output .jpeg file
+const jpegFilePath = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + 'pic.jpeg');;
+
+// Read the .bin file into a buffer
+fs.readFile(binFilePath, (err, data) => {
+  if (err) {
+    console.error('Error reading the .bin file:', err);
+    return;
+  }
+
+  // Write the buffer to a .jpeg file
+  fs.writeFile(jpegFilePath, data, (err) => {
+    if (err) {
+      console.error('Error writing the .jpeg file:', err);
+      return;
+    }
+
+    console.log('File successfully converted to .jpeg!');
+  });
+});
+            }
+
 
         current_state = FSM_STATE.LOOK_FOR_FILES;
     }
@@ -1108,6 +1374,7 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
             const query = Buffer.from([0, 8, 0, 7, 0, 0, 0, 0, 0, 0, 0]);
             query.write(device_info.getFileToDL(), 4);
+            dbg.log("[server]: [" + query.toString('hex') + "]");
             dbg.log('[TX]: [' + query.toString('hex') + ']');
             connection.write(query);
         }
@@ -1120,19 +1387,54 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
     }
 
     if (current_state == FSM_STATE.REPEAT_PACKET) {
-        device_info.sync_received = false;
-        let offset = device_info.getReceivedPackageCnt();
-        let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
-        if ((device_info.getCameraType() == CAMERA_TYPE.DUALCAM) && (device_info.getProtocolVersion() <= 5)) {
-            offset = offset + 1;
-        }
-        query.writeUInt32BE(offset, 4);
-        dbg.logAndPrint("Requesting for a repeat of last packet: " + offset.toString());
-        dbg.log('[TX]: [' + query.toString('hex') + ']');
-        connection.write(query);
-        device_info.repeat_sent_ts = Date.now();
-        device_info.repeat_count++;
+        
+         device_info.sync_received = false;
+        // let offset = device_info.getReceivedPackageCnt();
+        // let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
+        // if ((device_info.getCameraType() == CAMERA_TYPE.DUALCAM)) {
+        //     offset = offset + 1;
+        // }
+        // query.writeUInt32BE(offset, 4);
+        // console.log("s", offset)
+        // dbg.logAndPrint("Requesting for a repeat of last packet: " + offset.toString());
+        // dbg.log('[TX]: [' + query.toString('hex') + ']');
+        // connection.write(query);
+        // device_info.repeat_sent_ts = Date.now();
+        // device_info.repeat_count++;
 
+
+        const filePath2 = path.join(__dirname, device_info.getDeviceDirectory(), metadata.getTimestamp() + '.json');
+        console.log(filePath2,"=====Repeat packet")
+
+        if(fs.existsSync(filePath2)){
+            console.log(filePath2,"=====condition")
+        
+            try {
+                // Read and parse the JSON file
+                const fileContent = fs.readFileSync(filePath2, 'utf8');
+                const jsonData = JSON.parse(fileContent);
+               
+               
+
+                let offset = jsonData.receivedPackages;
+                let query = Buffer.from([0, 2, 0, 4, 0, 0, 0, 0]);
+                if ((device_info.getCameraType() == CAMERA_TYPE.DUALCAM)) {
+                    offset = offset + 1;
+                }
+                query.writeUInt32BE(offset, 4);
+                console.log("s", offset)
+                dbg.logAndPrint("Requesting for a repeat of last packet: " + offset.toString());
+                dbg.log('[TX]: [' + query.toString('hex') + ']');
+                connection.write(query);
+                device_info.repeat_sent_ts = Date.now();
+                device_info.repeat_count++;
+
+        
+            } catch (error) {
+                // Handle JSON parsing or file reading errors
+                console.error('Error reading or parsing the JSON file:', error.message);
+            }
+        }
     }
 
     if (current_state == FSM_STATE.SEND_METADATA_REQUEST) {
@@ -1141,6 +1443,7 @@ exports.run_fsm = function (current_state, connection, cmd_id, data_buffer, devi
         if (device_info.getCameraType() == CAMERA_TYPE.DUALCAM) {
             query = Buffer.from([0, 10, 0, 7, 0, 0, 0, 0, 0, 0, 0]);
             query.write(device_info.getFileToDL(), 4);
+            dbg.log("[server]: [" + query.toString('hex') + "]");
         } else {
             query = Buffer.from([0, 10, 0, 0]);
         }

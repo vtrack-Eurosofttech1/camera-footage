@@ -865,13 +865,20 @@ exports.run_fsm = async function (
 let emptyarray = []
  const startIndex = metadata.timestamp.indexOf('(') + 1;
 const endIndex = metadata.timestamp.indexOf(')');
-const timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
+var timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
 var pkgscount  ;
 var clientId 
 var vehicle
 //console.log("s",device_info.getclientId(), device_info.getvehicle() )
-device_info.setnewtimestamp(timestamp)
-//console.log("timestamp",timestamp)
+console.log("timestamp",timestamp)
+// if(isNaN(timestamp)){
+//   console.log("device_info.getCurrentFilename()",device_info.getCurrentFilename())
+//   timestamp = device_info.getCurrentFilename()
+// }else{
+//   device_info.setnewtimestamp(timestamp)
+// }
+
+
   var frameratevideo = metadata.framerate
   // if(timestamp > Date.now()){
   //   console.log("gbfgb000")
@@ -1066,8 +1073,8 @@ device_info.setnewtimestamp(timestamp)
     
        let actual_crc = data_buffer.readUInt16BE(4 + data_len);
       if (computed_crc != actual_crc) {
-
-        current_state = FSM_STATE.REPEAT_PACKET;
+console.log("re")
+        //current_state = FSM_STATE.REPEAT_PACKET;
       } else {
        // device_info.newaddToBuffer(raw_file)
 //         switch (device_info.getCameraType()) {
@@ -1083,6 +1090,7 @@ device_info.setnewtimestamp(timestamp)
 //         }
         device_info.incrementReceivedPackageCnt(1);
         let rx_pkg_cnt = device_info.getReceivedPackageCnt();
+        console.log(new Date())
         progress_bar.update(rx_pkg_cnt);
        // progress_bar.update(rx_pkg_cnt);
         // console.log(rx_pkg_cnt,
@@ -1161,7 +1169,7 @@ device_info.setnewtimestamp(timestamp)
     //  console.log("METADATA")
       /* Get raw file data */
       let raw_data = data_buffer.slice(4, 4 + data_len);
-      const metadata_string = raw_data.toString("utf-8");
+     // const metadata_string = raw_data.toString("utf-8");
      // console.log("metadata_string",metadata_string)
       if (device_info.getProtocolVersion() >= 6) {
         
@@ -1530,7 +1538,7 @@ device_info.setnewtimestamp(timestamp)
         .replace(/:/g, "")
         .replace(/ /g, "");
       device_info.setCurrentFilename(filename);
-    
+    console.log("filename", filename)
     //  dbg.logAndPrint("Filename: " + device_info.getCurrentFilename());
     }
   }

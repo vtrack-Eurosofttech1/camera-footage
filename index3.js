@@ -182,12 +182,18 @@ function formatBufferToHex(buffer) {
 
   function onConnData(data) {
   //   let indexOfSync = data.toString("hex").indexOf("00030004");
-  //   if(data.toString("hex").indexOf("000B")){
-  //     console.log("data,", data)
-  //   }
-  //  // console.log("metadata_option",metadata_option)
-  //   lastActivityTime = Date.now();
- //  console.log("ada", data.slice(0,100))
+    if(data.toString("hex").indexOf("000B")){
+      console.log("data,", data)
+      try {
+        fs.writeFileSync(path.join(__dirname, 'packetmetaData2.json'), JSON.stringify(data, null, 2));
+      } catch (error) {
+        console.log("Error writing to file:", error);
+      }
+        
+    }
+   // console.log("metadata_option",metadata_option)
+   lastActivityTime = Date.now();
+//  console.log("ada", data.slice(0,100))
     
   //     const bufferData = Buffer.isBuffer(data) ? data : Buffer.from(data);
 
@@ -568,6 +574,7 @@ const readbufferJSONFile = (filePath) => {
 
  function onConnClose() {
   console.log("close")
+ // clearInterval(inactivityTimer);
   const startIndex = metadata.timestamp.indexOf('(') + 1;
   const endIndex = metadata.timestamp.indexOf(')');
       let timestamp = parseInt(metadata.timestamp.substring(startIndex, endIndex), 10);
@@ -594,6 +601,10 @@ const readbufferJSONFile = (filePath) => {
     // getUnixTimestamp(metadata.timestamp);
    
     console.log("timestampscc", timestamp)
+    if(isNaN(timestamp)){
+      console.log("invalid timestamp")
+      return
+  }
     let filepath1
   try {
     filepath1 = path.join(__dirname, device_info.getDeviceDirectory(), `${timestamp}` + `${device_info.getExtension()}`);
@@ -603,6 +614,7 @@ const readbufferJSONFile = (filePath) => {
   let jsondata = readJSONFile(filePath)
   if((jsondata?.uploadedToS3 === false || jsondata?.uploadedToS3 == null  || jsondata?.uploadedToS3 == undefined)&& !fs.existsSync(filepath1)){
     try {
+      console.log("filepath1",filepath1)
         let readbuff = readbufferJSONFile(filePath1)
         console.log(typeof readbuff,readbuff?.length)
             // const filebuff = readJSONFile(filePath);

@@ -2,7 +2,7 @@ const net = require('net');
 const commandLineArgs = require('command-line-args');
 const tls = require('tls');
 const fs = require('fs');
-const protocol = require('./protocol4.js');
+const protocol = require('./protocol6.js');
 const cliProgress = require('cli-progress');
 const _colors = require('colors');
 const dbg = require('./debug.js')
@@ -151,7 +151,7 @@ function handleConnection(connection) {
             dbg.error("Too much data: " + data.length + " >= " + buffer_size);
             return;
         }
-
+console.log(data.slice(0,15))
         if (current_state == protocol.fsm_state.REPEAT_PACKET) {
 
             // try string search the sync cmd and drop unsynced packet data
@@ -202,11 +202,11 @@ function handleConnection(connection) {
             } else {
                 cmd_size = protocol.GetExpectedCommandLength(cmd_id);
             }
-
+console.log("cmd",cmd_size,tcp_buffer.length )
             // If there is not enough data for buffer - return and wait another TCP packet
-            if (tcp_buffer.length < cmd_size) {
-                return;
-            }
+            // if (tcp_buffer.length < cmd_size) {
+            //     return;
+            // }
 
             current_state = protocol.run_fsm(current_state, connection, cmd_id, tcp_buffer, device_info, metadata, progress_bar, camera_option, metadata_option);
             if (current_state == protocol.fsm_state.REPEAT_PACKET) {
